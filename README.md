@@ -30,6 +30,21 @@ $router->get('hello.html', function() {
     return '<h1>Hello, John!</h1>';
 });
 ```
+Example of redirecting
+```php
+$router->get('product1.html', function() use($modx) {
+    $modx->sendRedirect('catalog/product2.html');
+});
+// use the resource identifier
+$router->get('resource.html', function() use($modx) {
+    // Specify resource id
+    $modx->resourceIdentifier = 2;  
+    // Or resource URI
+    $modx->resourceIdentifier = 'another.html';
+    
+    return viewx('page.tpl');
+});
+```
 The router can work in 3 modes:
 - Disabled. All specified routes are ignored. 
 - Mixed. If no route is found for the request URI, MODX will continue processing the request. 
@@ -184,7 +199,7 @@ content only for guests.
 <a href="[[~[[*id]]]]">[[*pagetitle]]</a>
 {/parse}
 ```
-
+The $modx object is available in templates. Use it carefully.
 
 ## Settings
 * zoomx_caching - to cache template files. By default, `true`. In development mode it is better to disable it.
@@ -192,8 +207,8 @@ content only for guests.
 * zoomx_theme - site theme. It's a folder name in the template directory. It allows you to manage site themes. By default, `default`.
 * zoomx_template_dir - full path to [template files](https://www.smarty.net/docs/en/variable.template.dir.tpl). By default, `{core_path}components/zoomx/templates/`.
 * zoomx_routes_mode - route mode. 0 - disabled (routes are ignored); 1 - mixed (if no route is found, MODX will continue the search); 2 - strict (if no route is found, error 404 will occur). By default, `1`.
-* zoomx_smarty_cache_dir - full path to [cached template files](https://www.smarty.net/docs/en/variable.cache.dir.tpl). By default, `zoomx/smarty/cache/`.
-* zoomx_smarty_compile_dir - full path to [compiled template files](https://www.smarty.net/docs/en/variable.compile.dir.tpl). By default, `zoomx/smarty/compile/`.
+* zoomx_smarty_cache_dir - path to [cached template files](https://www.smarty.net/docs/en/variable.cache.dir.tpl) relative to `core/cache/`. By default, `zoomx/smarty/cache/`.
+* zoomx_smarty_compile_dir - path to [compiled template files](https://www.smarty.net/docs/en/variable.compile.dir.tpl) relative to `core/cache/`. By default, `zoomx/smarty/compile/`.
 * zoomx_smarty_config_dir - full path to [config files](https://www.smarty.net/docs/en/variable.config.dir.tpl). By default, `{core_path}config/`.
 * zoomx_smarty_custom_plugin_dir - full path to custom Smarty plugins. By default, ``.
 
