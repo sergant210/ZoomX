@@ -1,0 +1,39 @@
+{
+    "name": "sergant210/zoomx",
+    "description": "MODX Extra for alternative templating functionality.",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Sergey Shlokov",
+            "email": "sergant210@bk.ru",
+            "homepage": "https://modzone.ru"
+        }
+    ],
+    "require": {
+        "nikic/fast-route": "^1.3"
+    },
+    "require-dev": {
+        "roave/security-advisories": "dev-master",
+        "phpunit/phpunit": "^8"
+    },
+    "autoload": {
+        "files": [
+            "functions/helpers.php"
+        ],
+        "psr-4": {
+            "Zoomx\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Zoomx\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "phpunit": "phpunit -c ./phpunit.xml",
+        "test-text": "phpunit -c ./phpunit.xml --coverage-text",
+        "test-html": "phpunit -c ./phpunit.xml --coverage-html=report"
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}
