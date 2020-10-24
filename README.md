@@ -47,7 +47,7 @@ $router->get('resource.html', function() use($modx) {
 ```
 The router can work in 3 modes:
 - Disabled. All specified routes are ignored. 
-- Mixed. If no route is found for the request URI, MODX will continue processing the request. 
+- Mixed. If no route is found for the request URI, MODX will continue processing the request as usual. 
 - Strict. If no route is found for the request URI, a 404 error will occur and processing of the request will be stopped.
 
 ## Smarty template engine
