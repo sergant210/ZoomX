@@ -15,7 +15,7 @@ There are 3 templates out of the box - "base.tpl", "index.tpl" and "404.tpl". Cr
 Next, you need to associate the created templates with resources. To do this, open the file `core/config/routes.php` and define a route for the corresponding URI.
 ```php
 $router->get('hello.html', function() {
-    return new ZoomTemplate('hello.tpl', ['name' => 'John']);
+    return new ZoomView('hello.tpl', ['name' => 'John']);
 });
 $router->get('users/{id}', function($id) use($modx) {
     $user = $modx->getObject('modUser', ['id' => (int)$id]);
