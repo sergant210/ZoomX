@@ -9,7 +9,7 @@ It's required PHP >= 7.0.
 Install this package over the Package Manager. Switch On the system setting "friendly_urls". After that the start site page will be compiled from Smarty template "index.tpl" supplied with the package. Initially, templates are located in the folder `core
 /components/zoomx/templates/default/`. But it can be redefined. Two system settings are responsible for this -  `zoomx_template_dir` (by default, `core/components/zoomx/templates/`) and `zoomx_theme` (by default, `default`). I advise to move the template folder to `core/templates/`.
 
-There are 3 templates out of the box - "base.tpl", "index.tpl" and "404.tpl". Create your own templates and chunks (partials or subtemplates). 
+There are 3 templates out of the box - "base.tpl", "index.tpl" and "404.tpl". Create your own templates and chunks (partials or subtemplates) using them as template. 
 
 ## Routes
 Next, you need to associate the created templates with resources. To do this, open the file `core/config/routes.php` and define a route for the corresponding URI.
