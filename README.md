@@ -1,5 +1,5 @@
-ZoomX offers an alternative way to handling a request and preparing a response. The main goal is not to use elements from the database (as far as it's possible) and use your favorite IDE and versioning support for convinient development. The modRequest class has been refactored and optimized. In addition, a routing mechanism is built in. [FastRoute](https://github.com/nikic/FastRoute) is used for this. Regular templates are ignored and can only be used to bind TVs to resources. 
-When preparing a response, the standard parser is not used. PHP template engines are used instead. [Smarty template engine](https://www.smarty.net) comes out of the box. Because it's installed along with the MODX. 
+ZoomX offers an alternative way to handling a request and preparing a response. The main goal is not to use elements from the database (as far as it's possible) and use your favorite IDE and versioning support for convinient development. The modRequest class has been refactored and optimized. In addition, a routing mechanism is built in. [FastRoute](https://github.com/nikic/FastRoute) is used for this. Usual DB templates are ignored and can only be used to bind TVs to resources. 
+When preparing a response, the standard parser is not used (for the strict router mode). PHP template engines are used instead. [Smarty template engine](https://www.smarty.net) comes out of the box. Because it's installed along with MODX. 
 
 ## IMPORTANT
 It's required PHP >= 7.0.
@@ -47,7 +47,7 @@ $router->get('resource.html', function() use($modx) {
 ```
 The router can work in 3 modes:
 - Disabled. All specified routes are ignored. 
-- Mixed. If no route is found for the request URI, MODX will continue processing the request as usual. 
+- Mixed (soft). If no route is found for the request URI, MODX will continue processing the request as usual. 
 - Strict. If no route is found for the request URI, a 404 error will occur and processing of the request will be stopped.
 
 ## Smarty template engine
