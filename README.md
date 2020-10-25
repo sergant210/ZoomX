@@ -46,12 +46,14 @@ $router->get('resource.html', function() use($modx) {
 });
 ```
 The router can work in 3 modes:
-- Disabled. All specified routes are ignored. 
+- Disabled. All specified routes are ignored. MODX will work as usual.
 - Mixed (soft). If no route is found for the request URI, MODX will continue processing the request as usual. 
 - Strict. If no route is found for the request URI, a 404 error will occur and processing of the request will be stopped.
 
 ## Smarty template engine
 Smarty is a fast and powerful template engine and it comes out of the box. Besides it has many predefined plugins ([built-in functions](https://www.smarty.net/docs/en/language.builtin.functions.tpl), [custom functions](https://www.smarty.net/docs/en/language.custom.functions.tpl), [built-in modifiers](https://www.smarty.net/docs/en/language.modifiers.tpl. Default modifiers you can found in the [Smarty documentation](https://www.smarty.net/docs/en/). ZoomX adds its own plugins.
+
+
 
 ### ZoomX modifiers
 * chunk - get a MODX chunks.  
