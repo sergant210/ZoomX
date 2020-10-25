@@ -53,7 +53,12 @@ The router can work in 3 modes:
 ## Smarty template engine
 Smarty is a fast and powerful template engine and it comes out of the box. Besides it has many predefined plugins ([built-in functions](https://www.smarty.net/docs/en/language.builtin.functions.tpl), [custom functions](https://www.smarty.net/docs/en/language.custom.functions.tpl), [built-in modifiers](https://www.smarty.net/docs/en/language.modifiers.tpl. Default modifiers you can found in the [Smarty documentation](https://www.smarty.net/docs/en/). ZoomX adds its own plugins.
 
-
+Standard MODX syntax is available via a special block `parse`:
+```php
+{parse}
+[[!snippet?foo=`bar`]]
+{/parse}
+```
 
 ### ZoomX modifiers
 * chunk - get a MODX chunks.  
