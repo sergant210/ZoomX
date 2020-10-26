@@ -50,7 +50,7 @@ class AliasRequestHandler extends RequestHandler
 
     /**
      * @param string $uri
-     * @return Template|null
+     * @return View|null
      */
     public function processRoutes($uri)
     {
@@ -72,12 +72,13 @@ class AliasRequestHandler extends RequestHandler
                     }
                     $errorPageId = (int)$this->modx->getOption('error_page', null, $this->modx->getOption('site_start'));
                     $uri = $errorPageId === (int)$this->modx->getOption('site_start')
-                                                        ? $this->modx->getOption('base_url')
-                                                        : $this->getResourceURI($errorPageId);
+                        ? $this->modx->getOption('base_url')
+                        : $this->getResourceURI($errorPageId);
                     $this->processing = true;
                     parserx()->setTpl($this->processRoutes($uri));
                     $this->modx->sendErrorPage();
                 }
+                return null;
                 break;
             case Dispatcher::METHOD_NOT_ALLOWED:
                 $allowedMethods = implode(', ', $routeInfo[1]);
@@ -105,13 +106,13 @@ class AliasRequestHandler extends RequestHandler
     }
 
     /**
-     * Return a Template's object.
+     * Return a View object.
      * @param $output
-     * @return Template
+     * @return View
      */
-    protected function validateOutput($output): Template
+    protected function validateOutput($output): View
     {
-        return (! $output instanceof Template) ? viewx(md5((string)$output))->setContent((string)$output) : $output;
+        return (! $output instanceof View) ? viewx(md5((string)$output))->setContent((string)$output) : $output;
     }
 
     /**

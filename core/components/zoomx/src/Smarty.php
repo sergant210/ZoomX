@@ -16,7 +16,7 @@ class Smarty extends BaseSmarty implements ParserInterface {
     protected $chunkRepository;
     /** @var Repository  */
     protected $snippetRepository;
-    /** @var Template */
+    /** @var View */
     protected $tpl;
 
     /**
@@ -125,10 +125,10 @@ class Smarty extends BaseSmarty implements ParserInterface {
             return $this;
         }
 
-        if ($tpl instanceof Template) {
+        if ($tpl instanceof View) {
             $this->tpl = $tpl;
         } else {
-            $this->tpl = new Template((string)$tpl);
+            $this->tpl = new View((string)$tpl);
         }
 
         return $this;

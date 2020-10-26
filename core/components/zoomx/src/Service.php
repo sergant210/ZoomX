@@ -10,7 +10,7 @@ use modResponse;
 class Service
 {
     const ROUTES_DISABLED = 0;
-    const ROUTES_MIXED    = 1;
+    const ROUTES_SOFT     = 1;
     const ROUTES_STRICT   = 2;
 
     /** @var Service */
@@ -30,9 +30,7 @@ class Service
         $this->modx = $modx;
         $modx->zoomService = $this;
 
-        class_alias(Template::class, 'ZoomTemplate');
-        class_alias(Response::class, 'ZoomResponse');
-        class_alias(Request::class, 'ZoomRequest');
+        class_alias(View::class, 'ZoomView');
     }
 
     public static function getInstance($modx = null) {
@@ -85,6 +83,7 @@ class Service
             if (!class_exists('modResponse')) {
                 require  MODX_CORE_PATH . 'model/modx/modresponse.class.php';
             }
+            class_alias(Response::class, 'ZoomResponse');
             $responseClass = $this->modx->getOption('zoomx_response_class', null, Response::class, true);
             $this->response = new $responseClass($this->modx, $this);
         }
@@ -111,6 +110,7 @@ class Service
             if (!class_exists('modRequest')) {
                 require MODX_CORE_PATH . 'model/modx/modrequest.class.php';
             }
+            class_alias(Request::class, 'ZoomRequest');
             $requestClass = $this->modx->getOption('zoomx_request_class', null, Request::class, true);
             $this->request = new $requestClass($this->modx);
         }
@@ -119,7 +119,7 @@ class Service
 
     public function getRoutesMode()
     {
-        return (int)$this->modx->getOption('zoomx_routes_mode', null, self::ROUTES_MIXED);
+        return (int)$this->modx->getOption('zoomx_routes_mode', null, self::ROUTES_SOFT);
     }
 
     /**
@@ -137,7 +137,7 @@ class Service
 
         return is_array($interfaces) && in_array($interface, $interfaces);
     }
-     /**
+    /**
      * Get a field value.
      *
      * @param  string  $field

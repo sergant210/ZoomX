@@ -3,7 +3,7 @@
 namespace Zoomx;
 
 
-class Template
+class View
 {
     /** @var string */
     public $name;

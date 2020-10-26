@@ -35,10 +35,10 @@ if (! function_exists('viewx')) {
      *
      * @param  string  $tpl
      * @param  array   $data
-     * @return Zoomx\Template
+     * @return Zoomx\View
      */
     function viewx($tpl, $data = [])
     {
-        return new Zoomx\Template($tpl, $data);
+        return new Zoomx\View($tpl, $data);
     }
 }
