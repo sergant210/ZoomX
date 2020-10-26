@@ -13,6 +13,11 @@ $_lang['setting_zoomx_template_dir'] = 'Путь к шаблонам';
 $_lang['setting_zoomx_template_dir_desc'] = 'Полный путь к файлам шаблонов.';
 $_lang['setting_zoomx_routes_mode'] = 'Режим роутинга';
 $_lang['setting_zoomx_routes_mode_desc'] = '0 - роутинг выключен; 1 - смешанный режим (если роут не найден, поиском займётся MODX); 2 - монопольный режим (если роут не нейден, то ошибка 404).';
+$_lang['setting_zoomx_parser_class'] = 'Класс парсера';
+$_lang['setting_zoomx_parser_class_desc'] = 'Укажите класс парсера ZoomX. Он должен имплементировать интерфейс Zoomx\ParserInterface. По-умолчанию, ZoomSmarty.';
+$_lang['setting_zoomx_include_modx'] = 'Разрешить $modx в шаблонах';
+$_lang['setting_zoomx_include_modx_desc'] = 'В шаблонах будет доступен объект $modx.';
+
 $_lang['setting_zoomx_smarty_cache_dir'] = 'Путь к файлам кэша';
 $_lang['setting_zoomx_smarty_cache_dir_desc'] = 'Полный путь к файлам кэшированных шаблонов.';
 $_lang['setting_zoomx_smarty_compile_dir'] = 'Путь к компилированным файлам';

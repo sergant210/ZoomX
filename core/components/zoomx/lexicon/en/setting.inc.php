@@ -14,6 +14,11 @@ $_lang['setting_zoomx_template_dir'] = 'Template Path';
 $_lang['setting_zoomx_template_dir_desc'] = 'Full path to template files.';
 $_lang['setting_zoomx_routes_mode'] = 'Route mode';
 $_lang['setting_zoomx_routes_mode_desc'] = '0 - disabled; 1 - mixed (if no route is found, MODX will continue the search); 2 - strict (if no route is found, error 404 will occur).';
+$_lang['setting_zoomx_parser_class'] = 'Parser class';
+$_lang['setting_zoomx_parser_class_desc'] = 'Specify the ZoomX parser class. It should implement the Zoomx\ParserInterface interface. By default, ZoomSmarty.';
+$_lang['setting_zoomx_include_modx'] = 'Include $modx';
+$_lang['setting_zoomx_include_modx_desc'] = 'Allow the $modx object in templates.';
+
 $_lang['setting_zoomx_smarty_cache_dir'] = 'Cache path';
 $_lang['setting_zoomx_smarty_cache_dir_desc'] = 'Full path to cached template files.';
 $_lang['setting_zoomx_smarty_compile_dir'] = 'Compiled file path';

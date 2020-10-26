@@ -31,14 +31,9 @@ return [
         'value' => 'ZoomSmarty',
         'area' => 'zoomx_main',
     ],
-    'zoomx_request_class' => [
-        'xtype' => 'textfield',
-        'value' => 'ZoomRequest',
-        'area' => 'zoomx_main',
-    ],
-    'zoomx_response_class' => [
-        'xtype' => 'textfield',
-        'value' => 'ZoomResponse',
+    'zoomx_include_modx' => [
+        'xtype' => 'combo-boolean',
+        'value' => true,
         'area' => 'zoomx_main',
     ],
     /* Smarty */
