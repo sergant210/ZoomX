@@ -3,8 +3,8 @@
 if ($modx->event->name === 'OnMODXInit') {
     $corePath = $modx->getOption('zoomx_core_path', null, MODX_CORE_PATH . 'components/zoomx/');
     include_once $corePath . 'vendor/autoload.php';
+    $zoomx = Zoomx\Service::getInstance($modx);
     if ($modx->context->key !== 'mgr') {
-        $zoomx = Zoomx\Service::getInstance($modx);
         $modx->request = $zoomx->getRequest();
         $modx->response = $zoomx->getResponse();
     }

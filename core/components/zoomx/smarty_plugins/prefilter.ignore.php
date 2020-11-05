@@ -11,5 +11,5 @@
 function smarty_prefilter_ignore($source, Smarty_Internal_Template $template)
 {
 
-    return preg_replace('~({.*)\|ignore(.*})~', "{literal}$1$2{/literal}", $source);
+    return preg_replace('~({.+)\|ignore(.*})~', "{literal}$1$2{/literal}", $source);
 }

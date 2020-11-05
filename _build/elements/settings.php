@@ -8,7 +8,7 @@ return [
     ],
     'zoomx_default_tpl' => [
         'xtype' => 'textfield',
-        'value' => 'base.tpl',
+        'value' => '404.tpl',
         'area' => 'zoomx_main',
     ],
     'zoomx_theme' => [

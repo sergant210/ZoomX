@@ -25,6 +25,10 @@ class Service
     protected $request;
 
 
+    /**
+     * Service constructor.
+     * @param modX $modx
+     */
     private function __construct(modX $modx)
     {
         $this->modx = $modx;
@@ -33,8 +37,12 @@ class Service
         class_alias(View::class, 'ZoomView');
     }
 
+    /**
+     * @param modX|null $modx
+     * @return Service
+     */
     public static function getInstance($modx = null) {
-        if ((self::$_instance === null) && $modx) {
+        if (self::$_instance === null && $modx) {
             self::$_instance = new self($modx);
         }
 
@@ -49,8 +57,8 @@ class Service
     {
         if (!isset($this->parser)) {
             $parserClass = $this->modx->getOption('zoomx_parser_class', null, Smarty::class, true);
-            if (($parserClass === 'ZoomSmarty' || ltrim($parserClass, '\\') === Smarty::class) && !class_exists(\Smarty::class)) {
-                require_once MODX_CORE_PATH . 'model/smarty/Smarty.class.php';
+            if ($parserClass === 'ZoomSmarty' || ltrim($parserClass, '\\') === Smarty::class) {
+                class_exists(\Smarty::class) or require_once MODX_CORE_PATH . 'model/smarty/Smarty.class.php';
                 class_alias(Smarty::class, 'ZoomSmarty');
             }
             if (class_exists($parserClass) && $this->checkImplements($parserClass, ParserInterface::class)) {

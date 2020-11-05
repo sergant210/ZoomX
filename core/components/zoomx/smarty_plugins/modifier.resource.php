@@ -15,7 +15,7 @@ function smarty_modifier_resource($field, $default = null)
     if (!isset($modx->resource)) {
         return null;
     }
-    if (empty($modx->resource->{$field})) {
+    if (!isset($modx->resource->{$field})) {
         $output = $modx->resource->get($default) ?? '';
         return is_array($output) ? $output[1] : $output;
     }

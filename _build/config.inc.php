@@ -11,7 +11,7 @@ if (!defined('MODX_CORE_PATH')) {
 return [
     'name' => 'ZoomX',
     'name_lower' => 'zoomx',
-    'version' => '1.0.0',
+    'version' => '1.0.1',
     'release' => 'beta',
     // Install package to site right after build
     'install' => false,
@@ -37,7 +37,7 @@ return [
     ],
     // Log settings
     'log_level' => !empty($_REQUEST['download']) ? 0 : 3,
-    'log_target' => php_sapi_name() == 'cli' ? 'ECHO' : 'HTML',
+    'log_target' => php_sapi_name() === 'cli' ? 'ECHO' : 'HTML',
     // Download transport.zip after build
     'download' => !empty($_REQUEST['download']),
 ];

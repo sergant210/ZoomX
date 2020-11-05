@@ -216,7 +216,8 @@ class AliasRequestHandler extends RequestHandler
 
         if ($this->modx->getOption('cache_alias_map') && isset($this->aliasMap)) {
             $uri = array_search($id, $this->aliasMap);
-        } elseif ($this->resource = parent::getResource($id)) {
+        }
+        if (empty($uri) && $this->resource = parent::getResource($id)) {
             $uri = $this->resource->get('uri');
         }
 
