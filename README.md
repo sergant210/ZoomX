@@ -122,6 +122,10 @@ Arguments:
 // with parameters
 {'lang'|lexicon:['foo' => 'bar']}
 ```
+* modx - parse content with the MODX parser.  
+```php
+{'[[*pagetitle]] - [[++site_name]]'|modx}
+```
 * parse - can be used for resource fields or TVs containing tags.  
 Arguments:  
 \- parser class. By default, '' that means to use default ZoomX parser.  

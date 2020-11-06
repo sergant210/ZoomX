@@ -2,9 +2,9 @@
 /*
  * Smarty plugin
  * -------------------------------------------------------------
- * File: modifier.pls.php
+ * File: modifier.ph.php
  * Type: modifier
- * Name: pls
+ * Name: ph
  * Description: Get a MODX placeholder.
  * -------------------------------------------------------------
  */

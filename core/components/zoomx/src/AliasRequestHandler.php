@@ -76,12 +76,14 @@ class AliasRequestHandler extends RequestHandler
                         : $this->getResourceURI($errorPageId);
                     $this->processing = true;
                     parserx()->setTpl($this->processRoutes($uri));
+                    //TODO: Сделать собственную реализацию
                     $this->modx->sendErrorPage();
                 }
                 return null;
                 break;
             case Dispatcher::METHOD_NOT_ALLOWED:
                 $allowedMethods = implode(', ', $routeInfo[1]);
+                //TODO: Сделать через собственный метод sendError
                 $options = [
                     'error_pagetitle' => 'Error 405: Method Not Allowed',
                     'error_message' => "<h1>Method Not Allowed!</h1><p>Method '{$httpMethod}' is not allowed. Use one of these [{$allowedMethods}].</p>",
