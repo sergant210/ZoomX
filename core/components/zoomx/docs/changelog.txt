@@ -1,5 +1,12 @@
 Changelog for ZoomX.
 
+1.0.1-beta
+==============
+- Allow the $modx object in templates.
+- Fixed bug with uninstalling.
+- Added 'modx' modifier.
+- Some code refactoring.
+
 1.0.0-beta
 ==============
 - Initial release.

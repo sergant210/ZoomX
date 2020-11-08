@@ -12,12 +12,14 @@ if ($transport->xpdo) {
                 $content = '<?php
 /** @var FastRoute\RouteCollector  $router */
 /** @var modX  $modx */
+/*
 $router->get(\'/\', function() use ($modx) {
     return viewx(\'index.tpl\');
 });
 $router->get(\'404\', function() {
     return viewx(\'404.tpl\');
-});';
+});
+*/';
 
                 file_put_contents($routeFile, $content);
             }
