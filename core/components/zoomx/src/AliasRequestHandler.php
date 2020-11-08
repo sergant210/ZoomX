@@ -94,8 +94,9 @@ class AliasRequestHandler extends RequestHandler
                 break;
             case Dispatcher::FOUND:
                 $handler = $routeInfo[1];
-                $request = zoomx()->getRequest();
-                $request->setRouteParams($routeInfo[2]);
+                /** @var Request $request */
+                $request = zoomx()->getRequest()->hasRoute(true)->setRouteParams($routeInfo[2]);
+
                 /*$this->modx->invokeEvent('OnBeforeRouteHandle', [
                     'uri' => $uri,
                     'request' => $request,

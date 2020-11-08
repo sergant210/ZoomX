@@ -109,6 +109,7 @@ abstract class RequestHandler
                     return null;
                 }
                 if (!$resource->checkPolicy('view')) {
+                    //TODO: Собственная реализация
                     $this->modx->sendUnauthorizedPage();
                 }
             } else {
@@ -134,6 +135,7 @@ abstract class RequestHandler
                     return null;
                 }
                 if (!$resource->checkPolicy('view')) {
+                    //TODO: Собственная реализация
                     $this->modx->sendUnauthorizedPage();
                 }
                 if ($tvs = $resource->getMany('TemplateVars', 'all')) {

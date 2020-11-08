@@ -28,12 +28,12 @@ interface ParserInterface
     public function refresh($targets = []);
 
     /**
-     * @param Template|string $tpl
+     * @param View|string $tpl
      * @return self
      */
     public function setTpl($tpl);
     /**
-     * @return Template
+     * @return View
      */
     public function getTpl();
 

@@ -10,6 +10,8 @@ class Request extends modRequest
     protected $handler;
     /** @var array  */
     protected $routeParams = [];
+    /** @var bool  */
+    protected $hasRoute = false;
 
     /**
      * @param modX $modx A reference to the modX instance
@@ -111,10 +113,12 @@ class Request extends modRequest
 
     /**
      * @var array $params
+     * @return $this;
      */
     public function setRouteParams(array $params)
     {
         $this->routeParams = $params;
+        return $this;
     }
 
     /**
@@ -123,5 +127,18 @@ class Request extends modRequest
     public function getRouteParams()
     {
         return $this->routeParams;
+    }
+
+    /**
+     * @var array $params
+     * @return bool|$this;
+     */
+    public function hasRoute($value = null)
+    {
+        if ($value === null || !is_bool($value)) {
+            return $this->hasRoute;
+        }
+        $this->hasRoute = $value;
+        return $this;
     }
 }

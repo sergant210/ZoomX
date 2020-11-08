@@ -31,10 +31,9 @@ class Response extends modResponse
         if (!$this->contentType->get('binary')) {
             $parser = $this->zoomService->getParser();
 
-            if ($parser->hasTpl()) {
+            if ($this->zoomService->getRequest()->hasRoute()) {
                 try {
                     $this->modx->resource->_output = $parser->process($this->modx->resource);
-                    //$parser->setCaching($caching);
                 } catch (\Exception $e) {
                     $this->modx->log(MODX::LOG_LEVEL_ERROR, $e->getMessage());
                     $this->modx->resource->_output = str_replace(MODX_BASE_PATH, '.../', $e->getMessage());

@@ -40,12 +40,13 @@ class Smarty extends BaseSmarty implements ParserInterface {
         $this->compile_dir = $modx->getOption('zoomx_smarty_compile_dir', null, $cachePath . 'zoomx/smarty/compiled/');
         $this->setConfigDir($modx->getOption('zoomx_smarty_config_dir', null, $corePath . 'config/'));
 
+        // Set caching mode
         $this->caching = $modx->getOption('cache_resource', null, true)
             ? $modx->getOption('zoomx_caching', null, Smarty::CACHING_LIFETIME_CURRENT)
             : Smarty::CACHING_OFF;
         $this->cache_lifetime = (int)$modx->getOption('cache_resource_expires', null, 0);
         $this->cache_lifetime = $this->cache_lifetime > 0 ? $this->cache_lifetime : -1;
-
+        // Set plugin directories
         $pluginsDir = [
             $corePath . 'smarty_plugins/',
         ];
@@ -55,13 +56,15 @@ class Smarty extends BaseSmarty implements ParserInterface {
             $pluginsDir[] = $customPluginDir;
         }
         $this->addPluginsDir($pluginsDir);
-
+        // Set prefilters
         $preFilters = ['scripts', 'ignore'];
         foreach ($preFilters as $filter) {
             $this->loadFilter('pre', $filter);
         }
-
-        $this->assign('modx', $modx, true);
+        // Get available $modx object in the templates
+        if ($modx->getOption('zoomx_include_modx', null, true)) {
+            $this->assign('modx', $modx, true);
+        }
     }
 
     /**
