@@ -37,7 +37,7 @@ class Smarty extends BaseSmarty implements ParserInterface {
         $theme = str_replace(['.', '/'], '', trim($modx->getOption('zoomx_theme', null, 'default')));
         $this->template_dir = $modx->getOption('zoomx_template_dir', null, $corePath . 'templates/') . ($theme ? $theme . '/' : '');
         $this->cache_dir = $cachePath . ltrim($modx->getOption('zoomx_smarty_cache_dir', null, 'zoomx/smarty/cache/'), '/');
-        $this->compile_dir = $modx->getOption('zoomx_smarty_compile_dir', null, $cachePath . 'zoomx/smarty/compiled/');
+        $this->compile_dir = $cachePath . ltrim($modx->getOption('zoomx_smarty_compile_dir', null, 'zoomx/smarty/compiled/'), '/');
         $this->setConfigDir($modx->getOption('zoomx_smarty_config_dir', null, $corePath . 'config/'));
 
         // Set caching mode
