@@ -203,13 +203,21 @@ content only for authenticated users.
 content only for guests.
 {/guest}
 ```
-* parse - can be used to parse content with MODX tags.
+* modx - can be used to parse content with MODX tags by a parser specified in the "parser_class" system setting.
 Arguments:  
 \- parser -parser class.
 ```php
+{modx}
+<a href="[[~[[*id]]]]">[[*pagetitle]]</a>
+{/modx}
+```
+* parse - can be used to parse content with Smarty tags.
+Arguments:  
+\- parser - parser class. By default, ZoomSmarty.
+```php
 // Using a MODX parser parser by default.
 {parse}
-<a href="[[~[[*id]]]]">[[*pagetitle]]</a>
+{$modx->resource->tv} // TV contains Smarty tags. 
 {/parse}
 ```
 

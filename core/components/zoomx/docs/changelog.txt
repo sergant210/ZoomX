@@ -3,6 +3,7 @@ Changelog for ZoomX.
 1.0.2-beta
 ==============
 - Fixed bug with the path for compiled templates.
+- Added "modx" block.
 
 1.0.1-beta
 ==============
