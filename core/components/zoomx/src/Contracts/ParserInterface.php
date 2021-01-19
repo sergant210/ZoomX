@@ -1,8 +1,10 @@
 <?php
-namespace Zoomx;
+namespace Zoomx\Contracts;
 
 use modResource;
 use SmartyException;
+use Zoomx\View;
+
 
 interface ParserInterface
 {
@@ -29,9 +31,10 @@ interface ParserInterface
 
     /**
      * @param View|string $tpl
+     * @param array $data
      * @return self
      */
-    public function setTpl($tpl);
+    public function setTpl($tpl, array $data = []);
     /**
      * @return View
      */

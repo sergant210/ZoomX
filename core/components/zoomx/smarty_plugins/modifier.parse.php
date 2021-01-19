@@ -15,7 +15,7 @@ function smarty_modifier_parse($string, $parser = '')
     if ($parser === '') {
         $parser = parserx();
     }
-    if ($parser instanceof Zoomx\ParserInterface) {
+    if ($parser instanceof Zoomx\Contracts\ParserInterface) {
         $string = $parser->parse($string);
     } else {
         $parser = new $parser($modx);

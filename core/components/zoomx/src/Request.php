@@ -1,6 +1,7 @@
 <?php
 namespace Zoomx;
 
+use modHelpers\JsonResponse;
 use modX;
 use modRequest;
 
@@ -22,13 +23,31 @@ class Request extends modRequest
         $zoomService = Service::getInstance($modx);
         $zoomService->setRequest($this);
         $this->handler = $this->getRequestHandler();
+        $this->getMethod();
     }
 
+    /**
+     * Gets the request "intended" method.
+     *
+     * The method is always an uppercased string.
+     *
+     * @return string The request method
+     */
+    public function getMethod()
+    {
+        if (null === $this->method) {
+            $this->method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
+
+            if ('POST' === $this->method && $this->modx->getOption('zoomx_http_method_override', null, true)) {
+                $this->method = strtoupper($_POST['_method'] ?? 'POST');
+            }
+        }
+
+        return $this->method;
+    }
 
     /**
      * The primary MODX request handler (a.k.a. controller).
-     *
-     * @return boolean True if a request is handled without interruption.
      */
     public function handleRequest()
     {
@@ -53,16 +72,29 @@ class Request extends modRequest
             $this->checkPublishStatus();
             $this->modx->resourceIdentifier = $this->handler->getResourceIdentifier();
         }
-
         $this->modx->beforeRequest();
         $this->modx->invokeEvent("OnWebPageInit");
 
-        if (!is_object($this->modx->resource) && !($this->modx->resource = $this->handler->getResource($this->modx->resourceIdentifier))) {
-
-            $this->modx->sendErrorPage();
+        $apiMode = $this->modx->response &&
+                   $this->modx->response instanceof Json\ResponseInterface;
+        if (!$apiMode &&
+            !is_object($this->modx->resource) &&
+            !($this->modx->resource = $this->modx->request->getResource('', $this->modx->resourceIdentifier))) {
+            $this->sendErrorPage();
         }
 
-        return $this->prepareResponse();
+        $this->prepareResponse();
+    }
+
+    /**
+     * @param array $options
+     * @return bool|void
+     */
+    public function prepareResponse(array $options = array())
+    {
+        $this->modx->invokeEvent("OnLoadWebDocument");
+        $this->modx->response = $this->modx->response ?? zoomx()->getResponse();
+        $this->modx->response->outputContent($options);
     }
 
     /**
@@ -81,7 +113,7 @@ class Request extends modRequest
 
     public function getRequestHandler($reload = false)
     {
-        if (isset($this->handler) && $reload) {
+        if ($reload) {
             $this->handler = null;
         }
 
@@ -98,7 +130,7 @@ class Request extends modRequest
      */
     public function getAliasRequestHandler(): RequestHandler
     {
-        $class = $this->modx->getOption('zoomx_alias_request_handler', null, AliasRequestHandler::class, true);
+        $class = $this->modx->getOption('zoomx_alias_request_handler_class', null, AliasRequestHandler::class, true);
         return $this->handler = new $class($this->modx);
     }
 
@@ -107,7 +139,7 @@ class Request extends modRequest
      */
     public function getIdRequestHandler(): RequestHandler
     {
-        $class = $this->modx->getOption('zoomx_id_request_handler', null, IdRequestHandler::class, true);
+        $class = $this->modx->getOption('zoomx_id_request_handler_class', null, IdRequestHandler::class, true);
         return $this->handler = new $class($this->modx);
     }
 
@@ -130,7 +162,7 @@ class Request extends modRequest
     }
 
     /**
-     * @var array $params
+     * @var bool|null $value
      * @return bool|$this;
      */
     public function hasRoute($value = null)
@@ -140,5 +172,10 @@ class Request extends modRequest
         }
         $this->hasRoute = $value;
         return $this;
+    }
+
+    public function sendErrorPage()
+    {
+        $this->handler->sendErrorPage();
     }
 }

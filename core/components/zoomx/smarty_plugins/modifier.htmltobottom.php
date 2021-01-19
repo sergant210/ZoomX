@@ -8,7 +8,7 @@
  * Description: Register a html block to the end of the page.
  * -------------------------------------------------------------
  */
-function smarty_modifier_htmlToBottom($src)
+function smarty_modifier_htmltobottom($src)
 {
     global $modx;
 

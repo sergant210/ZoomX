@@ -1,5 +1,15 @@
 Changelog for ZoomX.
 
+2.0.0-beta
+==============
+- Added API mode that supports REST architecture.
+- Added support for controllers in routes.
+- Added shorthand modifiers "js", "css" and "html" .
+- Added MODX like tag syntax ({'*pagetitle'}, {'%lexicon'}, {'++setting'}, {'~5'}).
+- Added OnRequestError event for error codes 400, 406, 415, 503 and any custom codes.
+- Refactored modifiers "url" and "lexicon".
+- Renamed the system setting "zoomx_routs_mode" on "zoomx_routing_mode".
+
 1.0.2-beta
 ==============
 - Fixed bug with the path for compiled templates.

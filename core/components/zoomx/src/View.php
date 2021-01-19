@@ -5,11 +5,11 @@ namespace Zoomx;
 
 class View
 {
-    /** @var string */
+    /** @var string File name */
     public $name;
-    /** @var array */
+    /** @var array  Template variables to assing */
     public $data = [];
-    /** @var string */
+    /** @var string Content */
     public $content;
 
     public function __construct($name, array $data = [])

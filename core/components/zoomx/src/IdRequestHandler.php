@@ -17,13 +17,4 @@ class IdRequestHandler extends RequestHandler
 
         return (int)($_REQUEST[$key] ?? 0);
     }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function getResource($identifier, array $options = array()) {
-        //return $this->getResourceById($identifier);
-
-        return parent::getResource($identifier, $options);
-    }
 }

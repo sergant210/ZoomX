@@ -5,6 +5,7 @@ use xPDO;
 use modX;
 use xPDOCacheManager;
 use modResource;
+use Zoomx\Exceptions\HttpException;
 
 abstract class RequestHandler
 {
@@ -19,8 +20,22 @@ abstract class RequestHandler
         $this->initialize();
     }
 
+    /**
+     * Set a request method.
+     */
     abstract public function initialize();
 
+    /**
+     * @return string
+     */
+    public function getRequestUri()
+    {
+        $uri = $_SERVER['REQUEST_URI'];
+        if (false !== $pos = strpos($uri, '?')) {
+            $uri = substr($uri, 0, $pos);
+        }
+        return rawurldecode($uri);
+    }
     /**
      * @param int $id
      * @return modResource|null
@@ -47,7 +62,7 @@ abstract class RequestHandler
                     $resource->addOne($contentType, 'ContentType');
                 }
                 if (isset($cachedResource['resourceGroups'])) {
-                    $rGroups = array();
+                    $rGroups = [];
                     foreach ($cachedResource['resourceGroups'] as $rGroupKey => $rGroup) {
                         $rGroups[$rGroupKey]= $this->modx->newObject('modResourceGroupResource', $rGroup);
                     }
@@ -98,35 +113,34 @@ abstract class RequestHandler
      */
     public function getResource($identifier, array $options = []) {
         $resourceId = (int)$identifier;
-
         if (empty($resourceId)) {
             return null;
         }
-
         if (($resource = $this->getResourceFromCache($resourceId)) && !$resource->get('deleted')) {
             if ($resource->checkPolicy('load') && ($resource->get('published') || ($this->modx->getSessionState() === modX::SESSION_STATE_INITIALIZED && $this->modx->hasPermission('view_unpublished')))) {
                 if ($this->isWrongResourceContext($resource, $options)) {
                     return null;
                 }
                 if (!$resource->checkPolicy('view')) {
-                    //TODO: Собственная реализация
-                    $this->modx->sendUnauthorizedPage();
+                    try {
+                        abortx(403);
+                    } catch (HttpException $e) {
+                        $this->sendErrorPage($e);
+                    }
                 }
             } else {
                 return null;
             }
-            $this->modx->invokeEvent('OnLoadWebPageCache', array(
-                'resource'  => $resource,
-            ));
+            $this->modx->invokeEvent('OnLoadWebPageCache', ['resource'  => $resource]);
         } else {
             if ($this->resource && $this->resource instanceof modResource) {
                 $resource = $this->resource;
             } else {
                 $criteria = $this->modx->newQuery('modResource');
-                $criteria->select(array($this->modx->escape('modResource') . '.*'));
-                $criteria->where(array('id' => $resourceId, 'deleted' => '0'));
+                $criteria->select([$this->modx->escape('modResource') . '.*']);
+                $criteria->where(['id' => $resourceId, 'deleted' => '0']);
                 if ($this->modx->getSessionState() !== modX::SESSION_STATE_INITIALIZED || !$this->modx->hasPermission('view_unpublished')) {
-                    $criteria->where(array('published' => 1));
+                    $criteria->where(['published' => 1]);
                 }
                 $resource = $this->modx->getObject('modResource', $criteria);
             }
@@ -135,19 +149,22 @@ abstract class RequestHandler
                     return null;
                 }
                 if (!$resource->checkPolicy('view')) {
-                    //TODO: Собственная реализация
-                    $this->modx->sendUnauthorizedPage();
+                    try {
+                        abortx(403);
+                    } catch (HttpException $e) {
+                        $this->sendErrorPage($e);
+                    }
                 }
                 if ($tvs = $resource->getMany('TemplateVars', 'all')) {
                     /** @var \modTemplateVar $tv */
                     foreach ($tvs as $tv) {
-                        $resource->set($tv->get('name'), array(
+                        $resource->set($tv->get('name'), [
                             $tv->get('name'),
                             $tv->getValue($resource->get('id')),
                             $tv->get('display'),
                             $tv->get('display_params'),
                             $tv->get('type'),
-                        ));
+                        ]);
                     }
                 }
                 $this->modx->resourceGenerated = true;
@@ -158,5 +175,10 @@ abstract class RequestHandler
         }
 
         return $resource;
+    }
+
+    public function sendErrorPage(HttpException $e = null)
+    {
+        $this->modx->sendErrorPage();
     }
 }

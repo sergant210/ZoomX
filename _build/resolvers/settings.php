@@ -7,21 +7,15 @@ if ($transport->xpdo) {
     $modx = $transport->xpdo;
     switch ($options[xPDOTransport::PACKAGE_ACTION]) {
         case xPDOTransport::ACTION_INSTALL:
-            $routeFile = MODX_CORE_PATH . 'config/routes.php';
-            if (!file_exists($routeFile)) {
-                $content = '<?php
-/** @var FastRoute\RouteCollector  $router */
-/** @var modX  $modx */
-/*
-$router->get(\'/\', function() use ($modx) {
-    return viewx(\'index.tpl\');
-});
-*/';
-
-                file_put_contents($routeFile, $content);
-            }
             break;
         case xPDOTransport::ACTION_UPGRADE:
+            if ($setting = $modx->getObject('modSystemSetting', ['key' => 'zoomx_routes_mode'])) {
+                $setting->set('key', 'zoomx_routing_mode');
+                if (!$setting->save()) {
+                    $modx->log(modX::LOG_LEVEL_ERROR, 'Can\'t update the system setting "zoomx_routes_mode".');
+                }
+            }
+            break;
         case xPDOTransport::ACTION_UNINSTALL:
             break;
     }

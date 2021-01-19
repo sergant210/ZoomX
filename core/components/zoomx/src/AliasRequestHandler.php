@@ -1,11 +1,13 @@
 <?php
 namespace Zoomx;
 
+use Exception;
 use FastRoute\Dispatcher;
 use FastRoute\RouteCollector;
 use modResource;
-use modX;
-use xPDO;
+use Zoomx\Exceptions\HttpException;
+use Zoomx\Exceptions\NotFoundHttpException;
+use \Zoomx\Json\Response as JsonResponse;
 
 use function FastRoute\simpleDispatcher;
 
@@ -13,12 +15,10 @@ class AliasRequestHandler extends RequestHandler
 {
     /** @var Dispatcher */
     protected $dispatcher;
-    /** @var bool Prevent endless recursive calls */
-    protected $processing = false;
 
 
     /**
-     *
+     * {@inheritDoc}
      */
     public function initialize()
     {
@@ -30,92 +30,102 @@ class AliasRequestHandler extends RequestHandler
      */
     public function getResourceIdentifier()
     {
-        $uri = $_SERVER['REQUEST_URI'];
-        if (false !== $pos = strpos($uri, '?')) {
-            $uri = substr($uri, 0, $pos);
-        }
-        $uri = rawurldecode($uri);
+        $uri = $this->getRequestUri();
         if ($uri === $this->modx->getOption('base_url')) {
             $this->modx->resourceIdentifier = (int)$this->modx->getOption('site_start', null, 1);
         } else {
             $uri = ltrim($uri, '/');
         }
-
-        if (zoomx()->getRoutesMode() !== Service::ROUTES_DISABLED) {
-            parserx()->setTpl($this->processRoutes($uri));
+        if (!file_exists(MODX_CORE_PATH . MODX_CONFIG_KEY . '/routes.php')) {
+            $this->modx->setOption('zoomx_routing_mode', Service::ROUTING_DISABLED);
+        }
+        if (zoomx()->getRoutingMode() !== Service::ROUTING_DISABLED) {
+            $this->processRouting($uri);
         }
 
-        return  $this->modx->resourceIdentifier ?? $uri;
+        return $this->modx->resourceIdentifier ?? $uri;
     }
 
     /**
      * @param string $uri
-     * @return View|null
      */
-    public function processRoutes($uri)
+    public function processRouting($uri)
     {
-        $modx = $this->modx;
         $output = null;
 
-        $httpMethod = $_SERVER['REQUEST_METHOD'];
+        $httpMethod = $this->modx->request->method;
         $routeInfo = $this->getDispatcher()->dispatch($httpMethod, $uri);
-
-        switch ($routeInfo[0]) {
-            case Dispatcher::NOT_FOUND:
-                if (zoomx()->getRoutesMode() === Service::ROUTES_STRICT) {
-                    if ($this->processing) {
-                        if ($defaultTpl = trim($this->modx->getOption('zoomx_default_tpl'))) {
-                            $output = viewx($defaultTpl);
-                        }
-                        $this->processing = false;
-                        break;
+        try {
+            switch ($routeInfo[0]) {
+                case Dispatcher::NOT_FOUND:
+                    if (zoomx()->getRoutingMode() === Service::ROUTING_STRICT) {
+                        abortx(404);
                     }
-                    $errorPageId = (int)$this->modx->getOption('error_page', null, $this->modx->getOption('site_start'));
-                    $uri = $errorPageId === (int)$this->modx->getOption('site_start')
-                        ? $this->modx->getOption('base_url')
-                        : $this->getResourceURI($errorPageId);
-                    $this->processing = true;
-                    parserx()->setTpl($this->processRoutes($uri));
-                    //TODO: Сделать собственную реализацию
-                    $this->modx->sendErrorPage();
-                }
-                return null;
-                break;
-            case Dispatcher::METHOD_NOT_ALLOWED:
-                $allowedMethods = implode(', ', $routeInfo[1]);
-                //TODO: Сделать через собственный метод sendError
-                $options = [
-                    'error_pagetitle' => 'Error 405: Method Not Allowed',
-                    'error_message' => "<h1>Method Not Allowed!</h1><p>Method '{$httpMethod}' is not allowed. Use one of these [{$allowedMethods}].</p>",
-                    'error_header' => $_SERVER['SERVER_PROTOCOL'] . ' 405 Method Not Allowed',
-                ];
-                header($_SERVER['SERVER_PROTOCOL'] . ' 405 Method Not Allowed');
-                $modx->sendError('', $options);
-                break;
-            case Dispatcher::FOUND:
-                $handler = $routeInfo[1];
-                /** @var Request $request */
-                $request = zoomx()->getRequest()->hasRoute(true)->setRouteParams($routeInfo[2]);
+                    break;
+                case Dispatcher::METHOD_NOT_ALLOWED:
+                    $exception = zoomx()->getExceptionClass(405);
+                    throw new $exception($routeInfo[1]);
+                case Dispatcher::FOUND:
+                    $handler = $routeInfo[1];
+                    /** @var Request $request */
+                    $request = zoomx()->getRequest()->hasRoute(true)->setRouteParams($routeInfo[2]);
 
-                /*$this->modx->invokeEvent('OnBeforeRouteHandle', [
-                    'uri' => $uri,
-                    'request' => $request,
-                ]);*/
-                $output = call_user_func_array($handler, $request->getRouteParams());
-                break;
+                    /*$this->modx->invokeEvent('OnBeforeRouteHandle', [
+                        'uri' => $uri,
+                        'request' => $request,
+                    ]);*/
+                    $output = call_user_func_array($this->getCallback($handler), $request->getRouteParams());
+                    break;
+            }
+        } catch (HttpException $e) {
+            $this->sendErrorPage($e);
+        } catch (Exception $e) {
+            $this->modx->log(MODX_LOG_LEVEL_ERROR, $e->getMessage());
+            $this->modx->sendError('fatal');
         }
 
-        return $this->validateOutput($output);
+        $this->handleOutput($output);
     }
 
     /**
-     * Return a View object.
-     * @param $output
-     * @return View
+     * @param array|callable $handler
+     * @return string|array
+     * @throws Exception
      */
-    protected function validateOutput($output): View
+    protected function getCallback($handler)
     {
-        return (! $output instanceof View) ? viewx(md5((string)$output))->setContent((string)$output) : $output;
+        $handler = is_string($handler) ? [$handler] : $handler;
+        if (is_array($handler)) {
+            [$class, $method] = $handler;
+            $method = empty($method) ? 'index' : $method;
+            $handler = [new $class($this->modx), $method];
+        }
+
+        return $handler;
+    }
+
+
+    /**
+     * Handle the result.
+     * @param mixed $output
+     */
+    protected function handleOutput($output)
+    {
+        if (is_array($output)) {
+            $this->modx->response = zoomx()->getJsonResponse()->setData($output);
+        } elseif ($output instanceof JsonResponse) {
+            $this->modx->response = $output;
+        } elseif (! $output instanceof View) {
+            if ($output !== null) {
+                $content = (string)$output;
+                parserx()->setTpl(viewx(md5($content))->setContent($content));
+                $this->modx->resource = $this->getResource((int)$this->modx->getOption('site_start', null, 1));
+            }
+        } else {
+            parserx()->setTpl($output);
+        }
+
+        $this->modx->response = $this->modx->response ?? zoomx()->getResponse();
     }
 
     /**
@@ -130,8 +140,9 @@ class AliasRequestHandler extends RequestHandler
         if (is_int($identifier)) {
             return parent::getResource($identifier, $options);
         }
+        $context = $options['context'] ?? $this->modx->context->get('key');
 
-        return $this->getResourceByAlias($identifier, '', $options);
+        return $this->getResourceByAlias($identifier, $context, $options);
     }
 
 
@@ -146,6 +157,7 @@ class AliasRequestHandler extends RequestHandler
         if (empty($uri) || !is_string($uri)) {
             return null;
         }
+
         $this->clearRequestParam();
         $resourceId = null;
         if (empty($context) && isset($this->modx->context)) {
@@ -172,23 +184,28 @@ class AliasRequestHandler extends RequestHandler
                 $resourceId = is_object($this->resource) ? $this->resource->get('id') : null;
             }
         }
-        return parent::getResource($resourceId, $options);
+
+        return $resourceId ? parent::getResource($resourceId, $options) : $resourceId;
     }
 
     protected function getDispatcher()
     {
-        $modx = $this->modx;
         if (!$this->dispatcher) {
+            $modx = $this->modx;
+            $requestHandler = $this;
             $this->dispatcher = simpleDispatcher(
-                static function (RouteCollector $router) use ($modx) {
-                    if (file_exists(MODX_CORE_PATH . MODX_CONFIG_KEY . '/routes.php')) {
+                static function (RouteCollector $router) use ($modx, $requestHandler) {
+                    try {
                         include_once MODX_CORE_PATH . MODX_CONFIG_KEY . '/routes.php';
+                    } catch (HttpException $e) {
+                        $requestHandler->sendErrorPage($e);
+                    } catch (Exception $e) {
+                        $modx->sendError('fatal', ['error_message' => $e->getMessage()]);
                     }
-                }/*, [
-            'cacheFile' => $this->getCacheRoutesPath() . '/routes.cache.php',
-        ]*/
+                }
             );
         }
+
         return $this->dispatcher;
     }
 
@@ -214,7 +231,7 @@ class AliasRequestHandler extends RequestHandler
      * @param integer $id The integer id of the Resource.
      * @return string The URI of the Resource.
      */
-    protected function getResourceURI($id) {
+    protected function getResourceUri($id) {
         $uri = '';
 
         if ($this->modx->getOption('cache_alias_map') && isset($this->aliasMap)) {
@@ -225,5 +242,85 @@ class AliasRequestHandler extends RequestHandler
         }
 
         return $uri;
+    }
+
+    /**
+     * @param \Zoomx\Exceptions\HttpException|null $e
+     */
+    public function sendErrorPage(HttpException $e = null)
+    {
+        if ($e === null) {
+            $class = zoomx()->getExceptionClass(404, NotFoundHttpException::class);
+            $e = new $class;
+        }
+        if (zoomx()->getRoutingMode() === Service::ROUTING_STRICT || $this->modx->request->hasRoute()) {
+            $this->invokeEvent($e);
+            $tpl = $this->getErrorTpl($e->getStatusCode(), $this->modx->getOption('zoomx_default_tpl', null, 'error.tpl'));
+            parserx()->setTpl($tpl, $e->toArray());
+            $this->sendError($e);
+        } else {
+            //MODX mode
+            switch ($e->getStatusCode()) {
+            	case 401:
+            	case 403:
+                    $this->modx->sendUnauthorizedPage();
+            		break;
+                case 404:
+                    $this->modx->sendErrorPage();
+            		break;
+                default:
+                    $this->modx->sendError('', [
+                        'error_pagetitle' => $e->getTitle(),
+                        'error_message' => $e->getMessage(),
+                    ]);
+            }
+        }
+    }
+
+    protected function sendError(HttpException $e)
+    {
+        while (ob_get_level() && @ob_end_clean()) {}
+        if (!XPDO_CLI_MODE) {
+            foreach ($e->getHeaders() as $header => $value) {
+                $header = is_int($header) ? $value : "{$header}: {$value}";
+                header($header);
+            }
+            echo parserx()->process();
+        } else {
+            echo $e->getTitle(), "\n", $e->getMessage(), "\n";
+        }
+        exit();
+    }
+
+    protected function invokeEvent(HttpException $e)
+    {
+        switch ($e->getStatusCode()) {
+            case 400:
+            case 405:
+            case 415:
+                $event = 'OnRequestError';
+                break;
+            case 401:
+            case 403:
+                $event = 'OnPageUnauthorized';
+                break;
+            case 404:
+            default:
+                $event = 'OnPageNotFound';
+                break;
+        }
+        $this->modx->invokeEvent($event, [
+            'error_type' => $e->getStatusCode(),
+            'error_pagetitle' => $e->getTitle(),
+            'error_message' => $e->getMessage(),
+        ]);
+    }
+
+    private function getErrorTpl($code, $default = null)
+    {
+        $ext = $this->modx->getOption('zoomx_template_extension', null, 'tpl');
+        $tpl = $code . (!empty($ext) ? ".{$ext}" : '');
+
+        return parserx()->templateExists($tpl) ? $tpl : $default;
     }
 }

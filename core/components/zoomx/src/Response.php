@@ -1,26 +1,17 @@
 <?php
 namespace Zoomx;
 
+use Exception;
 use modResponse;
 use modX;
 
 class Response extends modResponse
 {
-    /** @var Service */
-    protected $zoomService;
-
-
     /**
-     * @param modX $modx A reference to the modX instance
-     * @param Service $zoomService
+     * {@inheritDoc}
      */
-    function __construct(modX $modx, Service $zoomService)
+    public function outputContent(array $options = array())
     {
-        $this->zoomService = $zoomService;
-        parent::__construct($modx);
-    }
-
-    public function outputContent(array $options = array()) {
         if (!($this->contentType = $this->modx->resource->getOne('ContentType'))) {
             if ($this->modx->getDebug() === true) {
                 $this->modx->log(modX::LOG_LEVEL_DEBUG, "No valid content type for RESOURCE: " . print_r($this->modx->resource->toArray(), true));
@@ -29,12 +20,11 @@ class Response extends modResponse
         }
 
         if (!$this->contentType->get('binary')) {
-            $parser = $this->zoomService->getParser();
-
-            if ($this->zoomService->getRequest()->hasRoute()) {
+            $zoomService = zoomx();
+            if ($zoomService->getRequest()->hasRoute()) {
                 try {
-                    $this->modx->resource->_output = $parser->process($this->modx->resource);
-                } catch (\Exception $e) {
+                    $this->modx->resource->_output = $zoomService->getParser()->process($this->modx->resource);
+                } catch (Exception $e) {
                     $this->modx->log(MODX::LOG_LEVEL_ERROR, $e->getMessage());
                     $this->modx->resource->_output = str_replace(MODX_BASE_PATH, '.../', $e->getMessage());
                 }
@@ -105,7 +95,9 @@ class Response extends modResponse
                 if ($customHeaders= $this->contentType->get('headers')) {
                     foreach ($customHeaders as $headerKey => $headerString) {
                         header($headerString);
-                        if (strpos($headerString, 'Content-Disposition:') !== false) $dispositionSet= true;
+                        if (strpos($headerString, 'Content-Disposition:') !== false) {
+                            $dispositionSet= true;
+                        }
                     }
                 }
                 if (!$dispositionSet && $this->modx->resource->get('content_dispo')) {

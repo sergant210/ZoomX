@@ -5,15 +5,14 @@ if ($modx->event->name === 'OnMODXInit') {
     include_once $corePath . 'vendor/autoload.php';
     $zoomx = Zoomx\Service::getInstance($modx);
     if ($modx->context->key !== 'mgr') {
-        $modx->request = $zoomx->getRequest();
-        $modx->response = $zoomx->getResponse();
+        $modx->request = $zoomx->shouldBeJson() ? $zoomx->getJsonRequest() : $zoomx->getRequest();
     }
     return;
 }
 
 try {
     $parser = parserx();
-} catch (LogicException $e) {
+} catch (Exception $e) {
     $modx->log(modX::LOG_LEVEL_ERROR, $e->getMessage());
     return;
 }
@@ -23,6 +22,6 @@ switch ($modx->event->name) {
         $parser->refresh();
         break;
     case 'OnCacheUpdate':
-        $parser->refresh('cache');
+        $parser->refresh(['cache', 'compiled']);
         break;
 }

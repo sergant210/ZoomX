@@ -8,7 +8,7 @@
  * Description: Register html block to the head section of the page.
  * -------------------------------------------------------------
  */
-function smarty_modifier_cssToHead($src)
+function smarty_modifier_htmltohead($src)
 {
     global $modx;
 

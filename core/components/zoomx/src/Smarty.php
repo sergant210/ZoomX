@@ -7,7 +7,8 @@ use modX;
 use modElement;
 use SmartyException;
 
-class Smarty extends BaseSmarty implements ParserInterface {
+class Smarty extends BaseSmarty implements Contracts\ParserInterface
+{
     /** @var modX $modx A reference to the modX instance */
     protected $modx;
     /** @var Service  */
@@ -57,13 +58,39 @@ class Smarty extends BaseSmarty implements ParserInterface {
         }
         $this->addPluginsDir($pluginsDir);
         // Set prefilters
-        $preFilters = ['scripts', 'ignore'];
-        foreach ($preFilters as $filter) {
-            $this->loadFilter('pre', $filter);
-        }
+        $this->loadPrefilters();
+
+        // Register shorthand modifiers
+        $this->registerShortModifiers($corePath . 'smarty_plugins/');
+
         // Get available $modx object in the templates
         if ($modx->getOption('zoomx_include_modx', null, true)) {
             $this->assign('modx', $modx, true);
+        }
+    }
+
+    protected function loadPrefilters()
+    {
+        $preFilters = ['scripts', 'ignore'];
+        if ($this->modx->getOption('zoomx_modx_tag_syntax', null, true)) {
+            $preFilters[] = 'modxtags';
+        }
+
+        foreach ($preFilters as $filter) {
+            $this->loadFilter('pre', $filter);
+        }
+    }
+
+    protected function registerShortModifiers($pluginsDir)
+    {
+        $modifiers = [
+            'css' => 'csstohead',
+            'js' => 'jstobottom',
+            'html' => 'htmltobottom',
+        ];
+        foreach ($modifiers as $shortName => $modifier) {
+            require_once $pluginsDir . "modifier.$modifier.php";
+            $this->registerPlugin("modifier", $shortName, "smarty_modifier_$modifier");
         }
     }
 
@@ -76,8 +103,13 @@ class Smarty extends BaseSmarty implements ParserInterface {
 
         if ($this->hasTpl()) {
             if ($this->templateExists($this->tpl->name)) {
-                $this->setCaching($this->caching && ($resource->cacheable ?? true));
-                $cacheId = $resource ? "doc_" . $resource->id : null;
+                if (isset($resource)) {
+                    $this->setCaching($this->caching && $resource->cacheable);
+                    $cacheId = "doc_" . $resource->id;
+                } else {
+                    $this->setCaching($this->caching);
+                    $cacheId = null;
+                }
 
                 try {
                     if ($this->tpl->hasData()) {
@@ -92,7 +124,7 @@ class Smarty extends BaseSmarty implements ParserInterface {
             } elseif ($this->tpl->hasContent()) {
                 $output = $this->tpl->content;
             } else {
-                $this->modx->log(modX::LOG_LEVEL_ERROR, "Specified template \"{$this->tpl}\" doesn't exist");
+                $this->modx->log(modX::LOG_LEVEL_ERROR, $this->modx->lexicon('zoomx_template_not_found', ['name' => $this->tpl]));
             }
             if ($resource) {
                 $resource->setProcessed(true);
@@ -122,7 +154,7 @@ class Smarty extends BaseSmarty implements ParserInterface {
     /**
      * {@inheritDoc}
      */
-    public function setTpl($tpl)
+    public function setTpl($tpl, array $data = [])
     {
         if (empty($tpl)) {
             return $this;
@@ -131,7 +163,7 @@ class Smarty extends BaseSmarty implements ParserInterface {
         if ($tpl instanceof View) {
             $this->tpl = $tpl;
         } else {
-            $this->tpl = new View((string)$tpl);
+            $this->tpl = new View((string)$tpl, $data);
         }
 
         return $this;
