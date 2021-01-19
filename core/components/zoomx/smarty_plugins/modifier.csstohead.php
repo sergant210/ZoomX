@@ -8,7 +8,7 @@
  * Description: Register CSS to be injected inside the HEAD tag of a resource.
  * -------------------------------------------------------------
  */
-function smarty_modifier_cssToHead($src, $media = null)
+function smarty_modifier_csstohead($src, $media = null)
 {
     global $modx;
 

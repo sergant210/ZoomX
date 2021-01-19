@@ -8,7 +8,7 @@
  * Description: Register js to the end of the page.
  * -------------------------------------------------------------
  */
-function smarty_modifier_cssToBottom($src, $plaintext = false)
+function smarty_modifier_jstobottom($src, $plaintext = false)
 {
     global $modx;
 

@@ -16,6 +16,8 @@ function smarty_prefilter_scripts($source, Smarty_Internal_Template $template)
         '~(\|htmlToBottom)(.*)}~',
         '~(\|jsToHead)(.*)}~',
         '~(\|jsToBottom)(.*)}~',
+        '~(\|js)(.*)}~',
+        '~(\|css)(.*)}~',
     ];
 
     return preg_replace($patterns, "$1$2 nocache}", $source);

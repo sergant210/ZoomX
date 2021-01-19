@@ -5,13 +5,14 @@ use modParser;
 use modX;
 use modRequest;
 use modResponse;
+use Zoomx\Json\Response as JsonResponse;
 
 
 class Service
 {
-    const ROUTES_DISABLED = 0;
-    const ROUTES_SOFT     = 1;
-    const ROUTES_STRICT   = 2;
+    const ROUTING_DISABLED = 0;
+    const ROUTING_SOFT     = 1;
+    const ROUTING_STRICT   = 2;
 
     /** @var Service */
     protected static $_instance;
@@ -58,7 +59,7 @@ class Service
         if (!isset($this->parser)) {
             $parserClass = $this->modx->getOption('zoomx_parser_class', null, Smarty::class, true);
             if ($parserClass === 'ZoomSmarty' || ltrim($parserClass, '\\') === Smarty::class) {
-                class_exists(\Smarty::class) or require_once MODX_CORE_PATH . 'model/smarty/Smarty.class.php';
+                class_exists(\Smarty::class) or require MODX_CORE_PATH . 'model/smarty/Smarty.class.php';
                 class_alias(Smarty::class, 'ZoomSmarty');
             }
             if (class_exists($parserClass) && $this->checkImplements($parserClass, ParserInterface::class)) {
@@ -74,31 +75,42 @@ class Service
 
     /**
      * @param Response|modResponse $response
-     * @return $this
+     * @return self
      */
     public function setResponse($response)
     {
         $this->response = $response;
+
         return $this;
     }
 
     /**
+     * @param string $class
      * @return Response|modResponse
      */
-    public function getResponse(): Response
+    public function getResponse($class = null)
     {
-        if (!isset($this->response)) {
+        if (!isset($this->response) || (is_string($class) && !$this->response instanceof $class)) {
             if (!class_exists('modResponse')) {
                 require  MODX_CORE_PATH . 'model/modx/modresponse.class.php';
             }
             class_alias(Response::class, 'ZoomResponse');
-            $responseClass = $this->modx->getOption('zoomx_response_class', null, Response::class, true);
-            $this->response = new $responseClass($this->modx, $this);
+            $responseClass = $class ?? $this->modx->getOption('zoomx_response_class', null, Response::class, true);
+            $this->response = new $responseClass($this->modx);
         }
 
         return $this->response;
     }
 
+    /**
+     * @return JsonResponse|modResponse
+     */
+    public function getJsonResponse()
+    {
+        $class = $this->modx->getOption('zoomx_json_response_class', null, JsonResponse::class);
+
+        return $this->getResponse($class);
+    }
     /**
      * @param Request|modRequest $request
      * @return $this
@@ -106,28 +118,75 @@ class Service
     public function setRequest($request)
     {
         $this->request = $request;
+        
         return $this;
+    }
+
+    /**
+     * @param string $class
+     * @return modRequest
+     */
+    public function getRequest($class = null)
+    {
+        if (!isset($this->request) || (is_string($class) && !$this->response instanceof $class)) {
+            if (!class_exists('modRequest')) {
+                require MODX_CORE_PATH . 'model/modx/modrequest.class.php';
+            }
+            class_alias(Request::class, 'ZoomRequest');
+            $requestClass = $class ?? $this->modx->getOption('zoomx_request_class', null, Request::class, true);
+            $this->request = new $requestClass($this->modx);
+        }
+
+        return $this->request;
     }
 
     /**
      * @return Request|modRequest
      */
-    public function getRequest()
+    public function getJsonRequest()
     {
-        if (!isset($this->request)) {
-            if (!class_exists('modRequest')) {
-                require MODX_CORE_PATH . 'model/modx/modrequest.class.php';
-            }
-            class_alias(Request::class, 'ZoomRequest');
-            $requestClass = $this->modx->getOption('zoomx_request_class', null, Request::class, true);
-            $this->request = new $requestClass($this->modx);
-        }
-        return $this->request;
+        $class = $this->modx->getOption('zoomx_json_request_class', null, Json\Request::class);
+
+        return $this->getRequest($class);
     }
 
-    public function getRoutesMode()
+    /**
+     * @return bool
+     */
+    public function shouldBeJson()
     {
-        return (int)$this->modx->getOption('zoomx_routes_mode', null, self::ROUTES_SOFT);
+        return isset($_SERVER['HTTP_ACCEPT']) && strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false;
+    }
+
+    /**
+     * @return int
+     */
+    public function getRoutingMode()
+    {
+        return (int)$this->modx->getOption('zoomx_routing_mode', null, self::ROUTING_SOFT);
+    }
+
+    /**
+     * @return array
+     */
+    public function getRequestInfo(): array
+    {
+        $totalTime = (microtime(true) - $this->modx->startTime);
+        $queryTime = $this->modx->queryTime;
+        $queries = $this->modx->executedQueries ?? 0;
+        $phpTime = $totalTime - $queryTime;
+        $queryTime = number_format($queryTime, 4) . ' s';
+        $totalTime = number_format($totalTime, 4) . ' s';
+        $phpTime = number_format($phpTime, 4) . ' s';
+        $memory = number_format(memory_get_usage(true) / 1024, 0, ",", " ") . ' kb';
+
+        return  [
+            'total_time' => $totalTime,
+            'query_time' => $queryTime,
+            'php_time' => $phpTime,
+            'queries' => $queries,
+            'memory' => $memory,
+        ];
     }
 
     /**

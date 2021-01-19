@@ -21,7 +21,7 @@ return [
         'value' => '{core_path}components/zoomx/templates/',
         'area' => 'zoomx_main',
     ],
-    'zoomx_routes_mode' => [
+    'zoomx_routing_mode' => [
         'xtype' => 'numberfield',
         'value' => 1,
         'area' => 'zoomx_main',
@@ -55,6 +55,11 @@ return [
     'zoomx_smarty_custom_plugin_dir' => [
         'xtype' => 'textfield',
         'value' => '',
+        'area' => 'zoomx_smarty',
+    ],
+    'zoomx_modx_tag_syntax' => [
+        'xtype' => 'combo-boolean',
+        'value' => true,
         'area' => 'zoomx_smarty',
     ],
 ];

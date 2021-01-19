@@ -1,26 +1,31 @@
 <?php
 namespace Zoomx;
 
+use Exception;
 use modResponse;
 use modX;
 
 class Response extends modResponse
 {
-    /** @var Service */
-    protected $zoomService;
+    /**
+     * Prepare the response.
+     */
+    public function prepare()
+    {
+        if (!is_object($this->modx->resource) && !($this->modx->resource = $this->modx->request->getResource('', $this->modx->resourceIdentifier))) {
+            $this->modx->sendErrorPage();
+        }
+        $this->modx->invokeEvent("OnLoadWebDocument");
+    }
 
 
     /**
-     * @param modX $modx A reference to the modX instance
-     * @param Service $zoomService
+     * {@inheritDoc}
      */
-    function __construct(modX $modx, Service $zoomService)
+    public function outputContent(array $options = array())
     {
-        $this->zoomService = $zoomService;
-        parent::__construct($modx);
-    }
+        $this->prepare();
 
-    public function outputContent(array $options = array()) {
         if (!($this->contentType = $this->modx->resource->getOne('ContentType'))) {
             if ($this->modx->getDebug() === true) {
                 $this->modx->log(modX::LOG_LEVEL_DEBUG, "No valid content type for RESOURCE: " . print_r($this->modx->resource->toArray(), true));
@@ -29,12 +34,11 @@ class Response extends modResponse
         }
 
         if (!$this->contentType->get('binary')) {
-            $parser = $this->zoomService->getParser();
-
-            if ($this->zoomService->getRequest()->hasRoute()) {
+            $zoomService = zoomx();
+            if ($zoomService->getRequest()->hasRoute()) {
                 try {
-                    $this->modx->resource->_output = $parser->process($this->modx->resource);
-                } catch (\Exception $e) {
+                    $this->modx->resource->_output = $zoomService->getParser()->process($this->modx->resource);
+                } catch (Exception $e) {
                     $this->modx->log(MODX::LOG_LEVEL_ERROR, $e->getMessage());
                     $this->modx->resource->_output = str_replace(MODX_BASE_PATH, '.../', $e->getMessage());
                 }

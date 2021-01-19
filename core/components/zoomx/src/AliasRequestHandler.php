@@ -1,11 +1,13 @@
 <?php
 namespace Zoomx;
 
+use Exception;
 use FastRoute\Dispatcher;
 use FastRoute\RouteCollector;
 use modResource;
+use modResponse;
 use modX;
-use xPDO;
+use \Zoomx\Json\Response as JsonResponse;
 
 use function FastRoute\simpleDispatcher;
 
@@ -18,7 +20,7 @@ class AliasRequestHandler extends RequestHandler
 
 
     /**
-     *
+     * {@inheritDoc}
      */
     public function initialize()
     {
@@ -30,39 +32,33 @@ class AliasRequestHandler extends RequestHandler
      */
     public function getResourceIdentifier()
     {
-        $uri = $_SERVER['REQUEST_URI'];
-        if (false !== $pos = strpos($uri, '?')) {
-            $uri = substr($uri, 0, $pos);
-        }
-        $uri = rawurldecode($uri);
+        $uri = $this->getRequestUri();
         if ($uri === $this->modx->getOption('base_url')) {
             $this->modx->resourceIdentifier = (int)$this->modx->getOption('site_start', null, 1);
         } else {
             $uri = ltrim($uri, '/');
         }
-
-        if (zoomx()->getRoutesMode() !== Service::ROUTES_DISABLED) {
-            parserx()->setTpl($this->processRoutes($uri));
+        if (zoomx()->getRoutingMode() !== Service::ROUTING_DISABLED) {
+            $this->processRouting($uri);
         }
 
-        return  $this->modx->resourceIdentifier ?? $uri;
+        return $this->modx->resourceIdentifier ?? $uri;
     }
 
     /**
      * @param string $uri
-     * @return View|null
+     * @return Response|modResponse
      */
-    public function processRoutes($uri)
+    public function processRouting($uri)
     {
-        $modx = $this->modx;
         $output = null;
 
-        $httpMethod = $_SERVER['REQUEST_METHOD'];
+        $httpMethod = $this->modx->request->method;
         $routeInfo = $this->getDispatcher()->dispatch($httpMethod, $uri);
 
         switch ($routeInfo[0]) {
             case Dispatcher::NOT_FOUND:
-                if (zoomx()->getRoutesMode() === Service::ROUTES_STRICT) {
+                if (zoomx()->getRoutingMode() === Service::ROUTING_STRICT) {
                     if ($this->processing) {
                         if ($defaultTpl = trim($this->modx->getOption('zoomx_default_tpl'))) {
                             $output = viewx($defaultTpl);
@@ -73,13 +69,12 @@ class AliasRequestHandler extends RequestHandler
                     $errorPageId = (int)$this->modx->getOption('error_page', null, $this->modx->getOption('site_start'));
                     $uri = $errorPageId === (int)$this->modx->getOption('site_start')
                         ? $this->modx->getOption('base_url')
-                        : $this->getResourceURI($errorPageId);
+                        : $this->getResourceUri($errorPageId);
                     $this->processing = true;
-                    parserx()->setTpl($this->processRoutes($uri));
+                    $this->processRouting($uri);
                     //TODO: Сделать собственную реализацию
                     $this->modx->sendErrorPage();
                 }
-                return null;
                 break;
             case Dispatcher::METHOD_NOT_ALLOWED:
                 $allowedMethods = implode(', ', $routeInfo[1]);
@@ -90,7 +85,7 @@ class AliasRequestHandler extends RequestHandler
                     'error_header' => $_SERVER['SERVER_PROTOCOL'] . ' 405 Method Not Allowed',
                 ];
                 header($_SERVER['SERVER_PROTOCOL'] . ' 405 Method Not Allowed');
-                $modx->sendError('', $options);
+                $this->modx->sendError('', $options);
                 break;
             case Dispatcher::FOUND:
                 $handler = $routeInfo[1];
@@ -101,21 +96,52 @@ class AliasRequestHandler extends RequestHandler
                     'uri' => $uri,
                     'request' => $request,
                 ]);*/
-                $output = call_user_func_array($handler, $request->getRouteParams());
+                try {
+                    $output = call_user_func_array($this->getCallback($handler), $request->getRouteParams());
+                } catch (Exception $e) {
+                    $this->modx->log(modX::LOG_LEVEL_ERROR, $e->getMessage());
+                }
                 break;
         }
 
-        return $this->validateOutput($output);
+        return $this->handleOutput($output);
     }
 
     /**
-     * Return a View object.
-     * @param $output
-     * @return View
+     * @param callable|string $handler
+     * @return string|array
+     * @throws Exception
      */
-    protected function validateOutput($output): View
+    protected function getCallback($handler)
     {
-        return (! $output instanceof View) ? viewx(md5((string)$output))->setContent((string)$output) : $output;
+        if (is_array($handler)) {
+            [$class, $method] = $handler;
+            $method = empty($method) ? 'index' : $method;
+            $handler = [new $class($this->modx), $method];
+        }
+
+        return $handler;
+    }
+
+    /**
+     * Handle the result.
+     * @param mixed $output
+     * @return Response|modResponse
+     */
+    protected function handleOutput($output)
+    {
+        if (is_array($output)) {
+            $this->modx->response = zoomx()->getJsonResponse()->setData($output);
+        } elseif ($output instanceof JsonResponse) {
+            $this->modx->response = $output;
+        } elseif (! $output instanceof View) {
+            $content = (string)$output;
+            parserx()->setTpl(viewx(md5($content))->setContent($content));
+        } else {
+            parserx()->setTpl($output);
+        }
+
+        return $this->modx->response = $this->modx->response ?? zoomx()->getResponse();
     }
 
     /**
@@ -172,7 +198,7 @@ class AliasRequestHandler extends RequestHandler
                 $resourceId = is_object($this->resource) ? $this->resource->get('id') : null;
             }
         }
-        return parent::getResource($resourceId, $options);
+        return $resourceId ? parent::getResource($resourceId, $options) : $resourceId;
     }
 
     protected function getDispatcher()
@@ -184,9 +210,7 @@ class AliasRequestHandler extends RequestHandler
                     if (file_exists(MODX_CORE_PATH . MODX_CONFIG_KEY . '/routes.php')) {
                         include_once MODX_CORE_PATH . MODX_CONFIG_KEY . '/routes.php';
                     }
-                }/*, [
-            'cacheFile' => $this->getCacheRoutesPath() . '/routes.cache.php',
-        ]*/
+                }
             );
         }
         return $this->dispatcher;
@@ -214,7 +238,7 @@ class AliasRequestHandler extends RequestHandler
      * @param integer $id The integer id of the Resource.
      * @return string The URI of the Resource.
      */
-    protected function getResourceURI($id) {
+    protected function getResourceUri($id) {
         $uri = '';
 
         if ($this->modx->getOption('cache_alias_map') && isset($this->aliasMap)) {

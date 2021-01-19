@@ -4,7 +4,7 @@ if (!function_exists('zoomx')) {
     /**
      * ZoomX helper for ZoomService.
      * @param string|null $property
-     * @return mixed
+     * @return Zoomx\Service|mixed
      */
     function zoomx($property = null)
     {
@@ -40,5 +40,19 @@ if (! function_exists('viewx')) {
     function viewx($tpl, $data = [])
     {
         return new Zoomx\View($tpl, $data);
+    }
+}
+
+if (! function_exists('jsonx')) {
+    /**
+     * Get a JsonResponse object.
+     *
+     * @param  array $data
+     * @return Zoomx\Json\Response
+     */
+    function jsonx(array $data = [])
+    {
+        $response = zoomx()->getJsonResponse();
+        return $response->setData($data);
     }
 }

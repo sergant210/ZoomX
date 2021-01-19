@@ -1,5 +1,25 @@
 Changelog for ZoomX.
 
+1.1.0-beta
+==============
+- Added API mode.
+- Added shorthand modifiers "js", "css" and "html" .
+- Added MODX like tag syntax ({'*pagetitle'}, {'%lexicon'}, {'++setting'}, {'~5'}).
+- Refactored modifiers "url" and "lexicon".
+- Renamed the system setting "zoomx_routs_mode" on "zoomx_routing_mode".
+
+1.0.2-beta
+==============
+- Fixed bug with the path for compiled templates.
+- Added "modx" block.
+
+1.0.1-beta
+==============
+- Allow the $modx object in templates.
+- Fixed bug with uninstalling.
+- Added 'modx' modifier.
+- Some code refactoring.
+
 1.0.0-beta
 ==============
 - Initial release.

@@ -19,8 +19,22 @@ abstract class RequestHandler
         $this->initialize();
     }
 
+    /**
+     * Set a request method.
+     */
     abstract public function initialize();
 
+    /**
+     * @return string
+     */
+    public function getRequestUri()
+    {
+        $uri = $_SERVER['REQUEST_URI'];
+        if (false !== $pos = strpos($uri, '?')) {
+            $uri = substr($uri, 0, $pos);
+        }
+        return rawurldecode($uri);
+    }
     /**
      * @param int $id
      * @return modResource|null

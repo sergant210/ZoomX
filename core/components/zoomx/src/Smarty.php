@@ -37,7 +37,7 @@ class Smarty extends BaseSmarty implements ParserInterface {
         $theme = str_replace(['.', '/'], '', trim($modx->getOption('zoomx_theme', null, 'default')));
         $this->template_dir = $modx->getOption('zoomx_template_dir', null, $corePath . 'templates/') . ($theme ? $theme . '/' : '');
         $this->cache_dir = $cachePath . ltrim($modx->getOption('zoomx_smarty_cache_dir', null, 'zoomx/smarty/cache/'), '/');
-        $this->compile_dir = $modx->getOption('zoomx_smarty_compile_dir', null, $cachePath . 'zoomx/smarty/compiled/');
+        $this->compile_dir = $cachePath . ltrim($modx->getOption('zoomx_smarty_compile_dir', null, 'zoomx/smarty/compiled/'), '/');
         $this->setConfigDir($modx->getOption('zoomx_smarty_config_dir', null, $corePath . 'config/'));
 
         // Set caching mode
@@ -57,13 +57,39 @@ class Smarty extends BaseSmarty implements ParserInterface {
         }
         $this->addPluginsDir($pluginsDir);
         // Set prefilters
-        $preFilters = ['scripts', 'ignore'];
-        foreach ($preFilters as $filter) {
-            $this->loadFilter('pre', $filter);
-        }
+        $this->loadPrefilters();
+
+        // Register shorthand modifiers
+        $this->registerShortModifiers($corePath . 'smarty_plugins/');
+
         // Get available $modx object in the templates
         if ($modx->getOption('zoomx_include_modx', null, true)) {
             $this->assign('modx', $modx, true);
+        }
+    }
+
+    protected function loadPrefilters()
+    {
+        $preFilters = ['scripts', 'ignore'];
+        if ($this->modx->getOption('zoomx_modx_tag_syntax', null, true)) {
+            $preFilters[] = 'modxtags';
+        }
+
+        foreach ($preFilters as $filter) {
+            $this->loadFilter('pre', $filter);
+        }
+    }
+
+    protected function registerShortModifiers($pluginsDir)
+    {
+        $modifiers = [
+            'css' => 'csstohead',
+            'js' => 'jstobottom',
+            'html' => 'htmltobottom',
+        ];
+        foreach ($modifiers as $shortName => $modifier) {
+            require_once $pluginsDir . "modifier.$modifier.php";
+            $this->registerPlugin("modifier", $shortName, "smarty_modifier_$modifier");
         }
     }
 
