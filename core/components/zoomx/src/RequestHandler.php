@@ -177,6 +177,9 @@ abstract class RequestHandler
         return $resource;
     }
 
+    /**
+     * @param \Zoomx\Exceptions\HttpException|null $e
+     */
     public function sendErrorPage(HttpException $e = null)
     {
         $this->modx->sendErrorPage();

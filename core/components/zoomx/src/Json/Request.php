@@ -3,6 +3,7 @@ namespace Zoomx\Json;
 
 use modX;
 use modRequest;
+use Zoomx\Exceptions\ServiceUnavailableHttpException;
 use Zoomx\Service;
 
 class Request extends modRequest
@@ -51,9 +52,16 @@ class Request extends modRequest
         $this->modx->invokeEvent('OnHandleRequest');
 
         if (!$this->modx->checkSiteStatus()) {
-            header($_SERVER['SERVER_PROTOCOL'] . ' 503 Service Unavailable');
+            try {
+                abortx(503);
+            } catch (ServiceUnavailableHttpException $e) {
+                /** @var Response $response */
+                $response = zoomx()->getJsonResponse();
+                $response->getErrorHandler();
+                $response->setData($e->toArray())->headers->add($e->getHeaders());
+                $response->outputContent();
+            }
         }
-
 
         $this->prepareResponse();
     }

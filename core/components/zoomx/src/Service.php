@@ -172,16 +172,16 @@ class Service
     /**
      * @return bool
      */
-    public function shouldBeJson()
+    public function shouldBeJson(): bool
     {
         return (isset($_SERVER['HTTP_ACCEPT']) && strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false) ||
-            (isset($_SERVER['Content-Type']) &&  strpos($_SERVER['Content-Type'], 'application/json') !== false);
+               (isset($_SERVER['Content-Type']) &&  strpos($_SERVER['Content-Type'], 'application/json') !== false);
     }
 
     /**
      * @return bool
      */
-    public function isAjax()
+    public function isAjax(): bool
     {
         return !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
     }
@@ -189,7 +189,7 @@ class Service
     /**
      * @return int
      */
-    public function getRoutingMode()
+    public function getRoutingMode(): int
     {
         return (int)$this->modx->getOption('zoomx_routing_mode', null, self::ROUTING_SOFT);
     }
@@ -206,6 +206,7 @@ class Service
         $queryTime = number_format($queryTime, 4) . ' s';
         $totalTime = number_format($totalTime, 4) . ' s';
         $phpTime = number_format($phpTime, 4) . ' s';
+        $source = $this->modx->resourceGenerated ? "database" : "cache";
         $memory = number_format(memory_get_usage(true) / 1024, 0, ",", " ") . ' kb';
 
         return  [
@@ -213,6 +214,7 @@ class Service
             'query_time' => $queryTime,
             'php_time' => $phpTime,
             'queries' => $queries,
+            'source' => $source,
             'memory' => $memory,
         ];
     }

@@ -10,7 +10,7 @@ class AccessDeniedHttpException extends HttpException
 
     /**
      * @param string|null $message The internal exception message
-     * @param \Throwable|null $previous The previous exception
+     * @param Throwable|null $previous The previous exception
      * @param int|null $code The internal exception code
      * @param array $headers
      */

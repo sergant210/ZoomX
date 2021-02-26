@@ -22,11 +22,11 @@ class Response extends modResponse implements ResponseInterface
     {
         parent::__construct($modx);
         session_register_shutdown();
-        $header = 'application/json';
+        $contentType = 'application/json';
         if ($charset = $modx->getOption('modx_charset', null, 'UTF-8')) {
-            $header .= '; charset=' . $charset;
+            $contentType .= '; charset=' . $charset;
         }
-        $this->headers = new Repository(['Content-Type'=> $header]);
+        $this->headers = new Repository(['Content-Type'=> $contentType]);
         $this->handler = $this->getHandler();
     }
 

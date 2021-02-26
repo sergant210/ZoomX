@@ -36,6 +36,11 @@ return [
         'value' => true,
         'area' => 'zoomx_main',
     ],
+    'zoomx_autoload_resource' => [
+        'xtype' => 'combo-boolean',
+        'value' => true,
+        'area' => 'zoomx_main',
+    ],
     /* Smarty */
     'zoomx_smarty_cache_dir' => [
         'xtype' => 'textfield',

@@ -150,7 +150,7 @@ class AliasRequestHandler extends RequestHandler
      * @param string $uri
      * @param string $context
      * @param array $options
-     * @return \modResource|null
+     * @return modResource|null
      */
     public function getResourceByAlias($uri, $context = '', array $options = [])
     {
@@ -158,7 +158,7 @@ class AliasRequestHandler extends RequestHandler
             return null;
         }
 
-        $this->clearRequestParam();
+        //$this->clearRequestParam();
         $resourceId = null;
         if (empty($context) && isset($this->modx->context)) {
             $context = $this->modx->context->get('key');
@@ -295,24 +295,21 @@ class AliasRequestHandler extends RequestHandler
     protected function invokeEvent(HttpException $e)
     {
         switch ($e->getStatusCode()) {
-            case 400:
-            case 405:
-            case 415:
-                $event = 'OnRequestError';
-                break;
             case 401:
             case 403:
                 $event = 'OnPageUnauthorized';
                 break;
             case 404:
-            default:
                 $event = 'OnPageNotFound';
                 break;
+            default:
+                $event = 'OnRequestError';
         }
         $this->modx->invokeEvent($event, [
             'error_type' => $e->getStatusCode(),
             'error_pagetitle' => $e->getTitle(),
             'error_message' => $e->getMessage(),
+            'e' => $e,
         ]);
     }
 

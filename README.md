@@ -22,7 +22,7 @@ $router->get('hello.html', function() {
 });
 $router->get('users/{id}', function($id) use($modx) {
     $user = $modx->getObject('modUser', ['id' => (int)$id]);
-    return viewx('profile.tpl', $user->toArray());
+    return viewx('profile.tpl', $user ? $user->toArray() : []);
 });
 ```
 Read more about routes in the documentation for [FastRoute](https://github.com/nikic/FastRoute).
@@ -330,6 +330,7 @@ Arguments:
 * zoomx_theme - site theme. It's a folder name in the template directory. It allows you to manage site themes. By default, `default`.
 * zoomx_template_dir - full path to [template files](https://www.smarty.net/docs/en/variable.template.dir.tpl). By default, `{core_path}components/zoomx/templates/`.
 * zoomx_http_method_override - allows to specify the HTTP methods "PATCH", "PUT" and "DELETE" (not supported in HTML forms) by setting a form input element named as "_method" (`<input type="hidden" name="_method" value="PUT">`).
+* zoomx_autoload_resource - disables searching and auto-loading the resource. This allows to use fully virtual pages.
   
 * zoomx_smarty_cache_dir - path to [cached template files](https://www.smarty.net/docs/en/variable.cache.dir.tpl) relative to `core/cache/`. By default, `zoomx/smarty/cache/`.
 * zoomx_smarty_compile_dir - path to [compiled template files](https://www.smarty.net/docs/en/variable.compile.dir.tpl) relative to `core/cache/`. By default, `zoomx/smarty/compile/`.

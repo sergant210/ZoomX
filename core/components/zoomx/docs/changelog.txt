@@ -1,12 +1,18 @@
 Changelog for ZoomX.
 
+2.1.0-beta
+==============
+- Added "zoomx_autoload_resource" system setting which allows to disable the search and auto-loading the resource for the corresponding URI.
+- Fixed a bug when working in CLI mode.
+- Returned support of the GET parameter "q".
+
 2.0.0-beta
 ==============
 - Added API mode that supports REST architecture.
 - Added support for controllers in routes.
-- Added shorthand modifiers "js", "css" and "html" .
-- Added MODX like tag syntax ({'*pagetitle'}, {'%lexicon'}, {'++setting'}, {'~5'}).
 - Added OnRequestError event for error codes 400, 406, 415, 503 and any custom codes.
+- Added shorthand modifiers "js", "css" and "html".
+- Added MODX like tag syntax ({'*pagetitle'}, {'%lexicon'}, {'++setting'}, {'~5'}).
 - Refactored modifiers "url" and "lexicon".
 - Renamed the system setting "zoomx_routs_mode" on "zoomx_routing_mode".
 

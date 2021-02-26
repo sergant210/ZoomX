@@ -1,9 +1,9 @@
 <?php
 namespace Zoomx;
 
-use modHelpers\JsonResponse;
 use modX;
 use modRequest;
+use Zoomx\Exceptions\HttpException;
 
 class Request extends modRequest
 {
@@ -60,14 +60,22 @@ class Request extends modRequest
         $this->sanitizeRequest();
         $this->modx->invokeEvent('OnHandleRequest');
         if (!$this->modx->checkSiteStatus()) {
-            header($_SERVER['SERVER_PROTOCOL'] . ' 503 Service Unavailable');
-            if (!$this->modx->resourceIdentifier = $this->modx->getOption('site_unavailable_page', null, 1)) {
-                $this->modx->resource = $this->modx->newObject('modDocument');
-                $this->modx->resource->template = 0;
-                $this->modx->resource->content = $this->modx->getOption('site_unavailable_message');
-                $this->modx->resourceIdentifier = 0;
+            if (zoomx()->getRoutingMode() === Service::ROUTING_STRICT) {
+                try {
+                    abortx(503);
+                } catch (HttpException $e) {
+                    $this->sendErrorPage($e);
+                }
+            } else {
+                header($_SERVER['SERVER_PROTOCOL'] . ' 503 Service Unavailable');
+                if (!$this->modx->resourceIdentifier = $this->modx->getOption('site_unavailable_page', null, 1)) {
+                    $this->modx->resource = $this->modx->newObject('modDocument');
+                    $this->modx->resource->template = 0;
+                    $this->modx->resource->content = $this->modx->getOption('site_unavailable_message');
+                    $this->modx->resourceIdentifier = 0;
+                }
+                $this->getIdRequestHandler();
             }
-            $this->getIdRequestHandler();
         } else {
             $this->checkPublishStatus();
             $this->modx->resourceIdentifier = $this->handler->getResourceIdentifier();
@@ -75,12 +83,17 @@ class Request extends modRequest
         $this->modx->beforeRequest();
         $this->modx->invokeEvent("OnWebPageInit");
 
-        $apiMode = $this->modx->response &&
-                   $this->modx->response instanceof Json\ResponseInterface;
-        if (!$apiMode &&
+        if (!$this->isApiMode() &&
             !is_object($this->modx->resource) &&
-            !($this->modx->resource = $this->modx->request->getResource('', $this->modx->resourceIdentifier))) {
-            $this->sendErrorPage();
+            $this->modx->getOption('zoomx_autoload_resource', null, true))
+        {
+            try {
+                if (!$this->modx->resource = $this->getResource('', $this->modx->resourceIdentifier)) {
+                    abortx(404);
+                }
+            } catch (HttpException $e) {
+                $this->sendErrorPage($e);
+            }
         }
 
         $this->prepareResponse();
@@ -174,8 +187,18 @@ class Request extends modRequest
         return $this;
     }
 
-    public function sendErrorPage()
+    /**
+     * Send the user to a MODX virtual error page.
+     * @param \Zoomx\Exceptions\HttpException|null $e
+     */
+    public function sendErrorPage(HttpException $e = null)
     {
-        $this->handler->sendErrorPage();
+        $this->handler->sendErrorPage($e);
+    }
+
+    private function isApiMode()
+    {
+        return  $this->modx->response &&
+            $this->modx->response instanceof Json\ResponseInterface;
     }
 }

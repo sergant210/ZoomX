@@ -3,6 +3,7 @@ namespace Zoomx;
 
 use Exception;
 use modResponse;
+use modStaticResource;
 use modX;
 
 class Response extends modResponse
@@ -12,6 +13,7 @@ class Response extends modResponse
      */
     public function outputContent(array $options = array())
     {
+        $this->modx->resource = $this->modx->resource ?? $this->modx->newObject('modDocument');
         if (!($this->contentType = $this->modx->resource->getOne('ContentType'))) {
             if ($this->modx->getDebug() === true) {
                 $this->modx->log(modX::LOG_LEVEL_DEBUG, "No valid content type for RESOURCE: " . print_r($this->modx->resource->toArray(), true));
@@ -49,91 +51,67 @@ class Response extends modResponse
                     }
                 }
             }
-
             $this->modx->beforeRender();
-
-            /* invoke OnWebPagePrerender event */
-            if (!isset($options['noEvent']) || empty($options['noEvent'])) {
-                $this->modx->invokeEvent('OnWebPagePrerender');
-            }
-
-            $totalTime= (microtime(true) - $this->modx->startTime);
-            $queryTime= $this->modx->queryTime;
-            $queries= isset ($this->modx->executedQueries) ? $this->modx->executedQueries : 0;
-            $phpTime= $totalTime - $queryTime;
-            $queryTime= sprintf("%2.4f s", $queryTime);
-            $totalTime= sprintf("%2.4f s", $totalTime);
-            $phpTime= sprintf("%2.4f s", $phpTime);
-            $source= $this->modx->resourceGenerated ? "database" : "cache";
-            $memory = number_format(memory_get_usage(true) / 1024, 0,","," ") . ' kb';
-            $this->modx->resource->_output= str_replace("[^q^]", $queries, $this->modx->resource->_output);
-            $this->modx->resource->_output= str_replace("[^qt^]", $queryTime, $this->modx->resource->_output);
-            $this->modx->resource->_output= str_replace("[^p^]", $phpTime, $this->modx->resource->_output);
-            $this->modx->resource->_output= str_replace("[^t^]", $totalTime, $this->modx->resource->_output);
-            $this->modx->resource->_output= str_replace("[^s^]", $source, $this->modx->resource->_output);
-            $this->modx->resource->_output= str_replace("[^m^]", $memory, $this->modx->resource->_output);
+            $this->renderInfo($zoomService->getRequestInfo());
         } else {
             $this->modx->beforeRender();
+        }
 
-            /* invoke OnWebPagePrerender event */
-            if (!isset($options['noEvent']) || empty($options['noEvent'])) {
-                $this->modx->invokeEvent("OnWebPagePrerender");
-            }
+        /* invoke OnWebPagePrerender event */
+        if (empty($options['noEvent'])) {
+            $this->modx->invokeEvent('OnWebPagePrerender');
         }
 
         /* send out content-type, content-disposition, and custom headers from the content type */
         if ($this->modx->getOption('set_header')) {
-            $type= $this->contentType->get('mime_type') ? $this->contentType->get('mime_type') : 'text/html';
-            $header= 'Content-Type: ' . $type;
+            $type = $this->contentType->get('mime_type') ? $this->contentType->get('mime_type') : 'text/html';
+            $header = 'Content-Type: ' . $type;
             if (!$this->contentType->get('binary')) {
-                $charset= $this->modx->getOption('modx_charset',null,'UTF-8');
+                $charset = $this->modx->getOption('modx_charset', null, 'UTF-8');
                 $header .= '; charset=' . $charset;
             }
             header($header);
             if (!$this->checkPreview()) {
-                $dispositionSet= false;
-                if ($customHeaders= $this->contentType->get('headers')) {
+                $dispositionSet = false;
+                if ($customHeaders = $this->contentType->get('headers')) {
                     foreach ($customHeaders as $headerKey => $headerString) {
                         header($headerString);
                         if (strpos($headerString, 'Content-Disposition:') !== false) {
-                            $dispositionSet= true;
+                            $dispositionSet = true;
                         }
                     }
                 }
                 if (!$dispositionSet && $this->modx->resource->get('content_dispo')) {
-                    if ($alias= $this->modx->resource->get('uri')) {
-                        $name= basename($alias);
+                    if ($alias = $this->modx->resource->get('uri')) {
+                        $name = basename($alias);
                     } elseif ($this->modx->resource->get('alias')) {
-                        $name= $this->modx->resource->get('alias');
-                        if ($ext= $this->contentType->getExtension()) {
+                        $name = $this->modx->resource->get('alias');
+                        if ($ext = $this->contentType->getExtension()) {
                             $name .= "{$ext}";
                         }
-                    } elseif ($name= $this->modx->resource->get('pagetitle')) {
-                        $name= $this->modx->resource->cleanAlias($name);
-                        if ($ext= $this->contentType->getExtension()) {
+                    } elseif ($name = $this->modx->resource->get('pagetitle')) {
+                        $name = $this->modx->resource->cleanAlias($name);
+                        if ($ext = $this->contentType->getExtension()) {
                             $name .= "{$ext}";
                         }
                     } else {
-                        $name= 'download';
-                        if ($ext= $this->contentType->getExtension()) {
+                        $name = 'download';
+                        if ($ext = $this->contentType->getExtension()) {
                             $name .= "{$ext}";
                         }
                     }
-                    $header= 'Cache-Control: public';
+                    $header = 'Cache-Control: public';
                     header($header);
-                    $header= 'Content-Disposition: attachment; filename=' . $name;
+                    $header = 'Content-Disposition: attachment; filename=' . $name;
                     header($header);
-                    $header= 'Vary: User-Agent';
+                    $header = 'Vary: User-Agent';
                     header($header);
                 }
             }
         }
 
         /* tell PHP to call _postProcess after returning the response (for caching) */
-        register_shutdown_function(array (
-            & $this->modx,
-            "_postProcess"
-        ));
+        register_shutdown_function([$this->modx,"_postProcess"]);
 
         if ($this->modx->resource instanceof modStaticResource && $this->contentType->get('binary')) {
             $this->modx->resource->process();
@@ -147,5 +125,15 @@ class Response extends modResponse
             flush();
             exit();
         }
+    }
+
+    private function renderInfo($info)
+    {
+        $this->modx->resource->_output = str_replace("[^q^]", $info['queries'], $this->modx->resource->_output);
+        $this->modx->resource->_output = str_replace("[^qt^]", $info['query_time'], $this->modx->resource->_output);
+        $this->modx->resource->_output = str_replace("[^p^]", $info['php_time'], $this->modx->resource->_output);
+        $this->modx->resource->_output = str_replace("[^t^]", $info['total_time'], $this->modx->resource->_output);
+        $this->modx->resource->_output = str_replace("[^s^]", $info['source'], $this->modx->resource->_output);
+        $this->modx->resource->_output = str_replace("[^m^]", $info['memory'], $this->modx->resource->_output);
     }
 }

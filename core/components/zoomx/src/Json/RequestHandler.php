@@ -14,16 +14,15 @@ class RequestHandler extends AliasRequestHandler
      */
     public function process()
     {
-        $this->modx->response = zoomx()->getJsonResponse();
-        $this->clearRequestParam();
+        //$this->clearRequestParam();
 
-        if (zoomx()->getRoutingMode() === Service::ROUTING_DISABLED) {
-            return $this->modx->response;
+        if (zoomx()->getRoutingMode() !== Service::ROUTING_DISABLED) {
+            $uri = $this->getRequestUri();
+            $uri = $uri === '/' ? $uri : ltrim($uri, '/');
+
+            $this->processRouting($uri);
         }
-        $uri = $this->getRequestUri();
-        $uri = $uri === '/' ? $uri : ltrim($uri, '/');
 
-        $this->processRouting($uri);
         return $this->modx->response;
     }
 
