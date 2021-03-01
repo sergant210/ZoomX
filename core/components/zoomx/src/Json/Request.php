@@ -19,8 +19,8 @@ class Request extends modRequest
     public function __construct(modX $modx)
     {
         parent::__construct($modx);
-        $zoomService = Service::getInstance($modx);
-        $zoomService->setRequest($this);
+        $modx->response = Service::getInstance($modx)->getJsonResponse();
+        //$zoomService->setRequest($this);
         $this->handler = $this->getRequestHandler();
         $this->getMethod();
     }
@@ -56,7 +56,7 @@ class Request extends modRequest
                 abortx(503);
             } catch (ServiceUnavailableHttpException $e) {
                 /** @var Response $response */
-                $response = zoomx()->getJsonResponse();
+                $response = $this->modx->response;
                 $response->getErrorHandler();
                 $response->setData($e->toArray())->headers->add($e->getHeaders());
                 $response->outputContent();

@@ -79,7 +79,9 @@ class Service
             $parserClass = $this->modx->getOption('zoomx_parser_class', null, Smarty::class, true);
             if ($parserClass === 'ZoomSmarty' || ltrim($parserClass, '\\') === Smarty::class) {
                 class_exists(\Smarty::class) or require MODX_CORE_PATH . 'model/smarty/Smarty.class.php';
-                class_alias(Smarty::class, 'ZoomSmarty');
+                if (!class_exists('ZoomSmarty')) {
+                    class_alias(Smarty::class, 'ZoomSmarty');
+                }
             }
             if (class_exists($parserClass) && $this->checkImplements($parserClass, ParserInterface::class)) {
                 $this->parser = new $parserClass($this->modx, $this);
@@ -113,7 +115,9 @@ class Service
             if (!class_exists('modResponse')) {
                 require  MODX_CORE_PATH . 'model/modx/modresponse.class.php';
             }
-            class_alias(Response::class, 'ZoomResponse');
+            if (!class_exists('ZoomResponse')) {
+                class_alias(Response::class, 'ZoomResponse');
+            }
             $responseClass = $class ?? $this->modx->getOption('zoomx_response_class', null, Response::class, true);
             $this->response = new $responseClass($this->modx);
         }
@@ -147,11 +151,13 @@ class Service
      */
     public function getRequest($class = null)
     {
-        if (!isset($this->request) || (is_string($class) && !$this->response instanceof $class)) {
+        if (!isset($this->request) || (is_string($class) && !$this->request instanceof $class)) {
             if (!class_exists('modRequest')) {
                 require MODX_CORE_PATH . 'model/modx/modrequest.class.php';
             }
-            class_alias(Request::class, 'ZoomRequest');
+            if (!class_exists('ZoomRequest')) {
+                class_alias(Request::class, 'ZoomRequest');
+            }
             $requestClass = $class ?? $this->modx->getOption('zoomx_request_class', null, Request::class, true);
             $this->request = new $requestClass($this->modx);
         }
@@ -172,7 +178,7 @@ class Service
     /**
      * @return bool
      */
-    public function shouldBeJson(): bool
+    public function shouldBeJson()
     {
         return (isset($_SERVER['HTTP_ACCEPT']) && strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false) ||
                (isset($_SERVER['Content-Type']) &&  strpos($_SERVER['Content-Type'], 'application/json') !== false);
@@ -181,7 +187,7 @@ class Service
     /**
      * @return bool
      */
-    public function isAjax(): bool
+    public function isAjax()
     {
         return !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
     }
@@ -189,7 +195,7 @@ class Service
     /**
      * @return int
      */
-    public function getRoutingMode(): int
+    public function getRoutingMode()
     {
         return (int)$this->modx->getOption('zoomx_routing_mode', null, self::ROUTING_SOFT);
     }
@@ -206,7 +212,6 @@ class Service
         $queryTime = number_format($queryTime, 4) . ' s';
         $totalTime = number_format($totalTime, 4) . ' s';
         $phpTime = number_format($phpTime, 4) . ' s';
-        $source = $this->modx->resourceGenerated ? "database" : "cache";
         $memory = number_format(memory_get_usage(true) / 1024, 0, ",", " ") . ' kb';
 
         return  [
@@ -214,7 +219,6 @@ class Service
             'query_time' => $queryTime,
             'php_time' => $phpTime,
             'queries' => $queries,
-            'source' => $source,
             'memory' => $memory,
         ];
     }
@@ -228,10 +232,6 @@ class Service
      * @param  array   $headers
      *
      * @throws \Zoomx\Exceptions\HttpException
-     * @throws \Zoomx\Exceptions\BadRequestHttpException
-     * @throws \Zoomx\Exceptions\UnauthorizedHttpException
-     * @throws \Zoomx\Exceptions\AccessDeniedHttpException
-     * @throws \Zoomx\Exceptions\NotFoundHttpException
      */
     public function abort($code, $message = null, $title = null, array $headers = [])
     {

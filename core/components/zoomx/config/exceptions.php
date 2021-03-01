@@ -8,5 +8,6 @@ return [
     405 => Zoomx\Exceptions\MethodNotAllowedHttpException::class,
     406 => Zoomx\Exceptions\NotAcceptableHttpException::class,
     415 => Zoomx\Exceptions\UnsupportedMediaTypeHttpException::class,
+    500 => Zoomx\Exceptions\InternalServerErrorHttpException::class,
     503 => Zoomx\Exceptions\ServiceUnavailableHttpException::class,
 ];

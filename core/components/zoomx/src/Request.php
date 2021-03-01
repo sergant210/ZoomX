@@ -20,8 +20,7 @@ class Request extends modRequest
     public function __construct(modX $modx)
     {
         parent::__construct($modx);
-        $zoomService = Service::getInstance($modx);
-        $zoomService->setRequest($this);
+//        $modx->response = Service::getInstance($modx)->getResponse();
         $this->handler = $this->getRequestHandler();
         $this->getMethod();
     }
@@ -85,7 +84,7 @@ class Request extends modRequest
 
         if (!$this->isApiMode() &&
             !is_object($this->modx->resource) &&
-            $this->modx->getOption('zoomx_autoload_resource', null, true))
+            $this->autoloadResource())
         {
             try {
                 if (!$this->modx->resource = $this->getResource('', $this->modx->resourceIdentifier)) {
@@ -103,7 +102,7 @@ class Request extends modRequest
      * @param array $options
      * @return bool|void
      */
-    public function prepareResponse(array $options = array())
+    public function prepareResponse(array $options = [])
     {
         $this->modx->invokeEvent("OnLoadWebDocument");
         $this->modx->response = $this->modx->response ?? zoomx()->getResponse();
@@ -199,6 +198,12 @@ class Request extends modRequest
     private function isApiMode()
     {
         return  $this->modx->response &&
-            $this->modx->response instanceof Json\ResponseInterface;
+                $this->modx->response instanceof Json\ResponseInterface;
+    }
+
+    private function autoloadResource()
+    {
+        return !$this->hasRoute() ||
+                $this->modx->getOption('zoomx_autoload_resource', null, true);
     }
 }

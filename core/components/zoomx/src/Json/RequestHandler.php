@@ -10,7 +10,7 @@ use Zoomx\Service;
 class RequestHandler extends AliasRequestHandler
 {
     /**
-     * @return Response
+     * @return \modResponse
      */
     public function process()
     {

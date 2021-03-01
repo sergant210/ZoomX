@@ -96,9 +96,13 @@ class AliasRequestHandler extends RequestHandler
     {
         $handler = is_string($handler) ? [$handler] : $handler;
         if (is_array($handler)) {
-            [$class, $method] = $handler;
+            list($class, $method) = $handler;
             $method = empty($method) ? 'index' : $method;
-            $handler = [new $class($this->modx), $method];
+            try {
+                $handler = [new $class($this->modx), $method];
+            } catch (\Error $e) {
+                abortx(500, $e->getMessage());
+            }
         }
 
         return $handler;
@@ -261,13 +265,13 @@ class AliasRequestHandler extends RequestHandler
         } else {
             //MODX mode
             switch ($e->getStatusCode()) {
-            	case 401:
-            	case 403:
+                case 401:
+                case 403:
                     $this->modx->sendUnauthorizedPage();
-            		break;
+                    break;
                 case 404:
                     $this->modx->sendErrorPage();
-            		break;
+                    break;
                 default:
                     $this->modx->sendError('', [
                         'error_pagetitle' => $e->getTitle(),

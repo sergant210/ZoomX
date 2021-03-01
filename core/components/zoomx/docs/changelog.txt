@@ -1,5 +1,9 @@
 Changelog for ZoomX.
 
+2.1.1-beta
+==============
+- Some bugfixes.
+
 2.1.0-beta
 ==============
 - Added "zoomx_autoload_resource" system setting which allows to disable the search and auto-loading the resource for the corresponding URI.
