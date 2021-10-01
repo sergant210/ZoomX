@@ -57,8 +57,7 @@ class Request extends modRequest
             } catch (ServiceUnavailableHttpException $e) {
                 /** @var Response $response */
                 $response = $this->modx->response;
-                $response->getErrorHandler();
-                $response->setData($e->toArray())->headers->add($e->getHeaders());
+                $response->setData($e->toArray())->setStatusCode($e->getStatusCode())->headers->add($e->getHeaders());
                 $response->outputContent();
             }
         }

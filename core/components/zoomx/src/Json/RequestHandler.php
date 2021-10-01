@@ -50,7 +50,7 @@ class RequestHandler extends AliasRequestHandler
                     break;
             }
         } catch (HttpException $e) {
-            $response->getErrorHandler();
+            $response->setStatusCode($e->getStatusCode());
             $response->setData($e->toArray())->headers->add($e->getHeaders());
         } catch (Exception $e) {
             $this->modx->log(MODX_LOG_LEVEL_ERROR, $e->getMessage());

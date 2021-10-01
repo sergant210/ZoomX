@@ -16,7 +16,7 @@ class AccessDeniedHttpException extends HttpException
      */
     public function __construct($message = null, Throwable $previous = null, array $headers = [], $code = null)
     {
-        $headers[403] = $_SERVER['SERVER_PROTOCOL'] . ' 403 Forbidden';
+        $headers[403] = ($_SERVER['SERVER_PROTOCOL'] ?? 'http') . ' 403 Forbidden';
         $message = $message ?? "Access denied!";
 
         parent::__construct(403, $message, $previous, $headers, $code);

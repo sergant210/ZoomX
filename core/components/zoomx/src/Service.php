@@ -7,10 +7,15 @@ use modRequest;
 use modResponse;
 use Zoomx\Json\Response as JsonResponse;
 use Zoomx\Contracts\ParserInterface;
+use Zoomx\Support\ContentTypeDetector;
+use Zoomx\Support\ElementService;
+use Zoomx\Support\Macroable;
 
 
 class Service
 {
+    use Macroable;
+
     const ROUTING_DISABLED = 0;
     const ROUTING_SOFT     = 1;
     const ROUTING_STRICT   = 2;
@@ -25,6 +30,8 @@ class Service
     protected $response;
     /** @var Request */
     protected $request;
+    /** @var ElementService */
+    protected $elementService;
     /** @var array */
     protected $exceptions = [];
 
@@ -36,11 +43,31 @@ class Service
     private function __construct(modX $modx)
     {
         $this->modx = $modx;
-        $modx->zoomService = $this;
 
         class_alias(View::class, 'ZoomView');
         $modx->lexicon->load('zoomx:default');
         $this->loadExceptions();
+
+        // Set exception handler
+        if ($modx->getOption('zoomx_enable_exception_handler', null, true)) {
+            $exceptionHandler = $this->getExceptionHandler();
+            set_exception_handler([$exceptionHandler, 'handle']);
+        }
+
+        // Register the session_write_close function
+        session_register_shutdown();
+
+        if ($modx->getOption('zoomx_enable_pdotools_adapter', null, false)) {
+            $this->preparePdoToolsAdapter();
+        }
+        $modx->invokeEvent('onZoomxInit');
+    }
+
+    private function getExceptionHandler()
+    {
+        $exceptionHandlerClass = $this->modx->getOption('zoomx_exception_handler_class', null, ExceptionHandler::class, true);
+
+        return new $exceptionHandlerClass($this->modx, $this->getRequest()->getRequestHandler());
     }
 
     private function loadExceptions()
@@ -106,10 +133,10 @@ class Service
     }
 
     /**
-     * @param string $class
+     * @param string|null $class
      * @return Response|modResponse
      */
-    public function getResponse($class = null)
+    public function getResponse($class = null, ...$params)
     {
         if (!isset($this->response) || (is_string($class) && !$this->response instanceof $class)) {
             if (!class_exists('modResponse')) {
@@ -118,8 +145,8 @@ class Service
             if (!class_exists('ZoomResponse')) {
                 class_alias(Response::class, 'ZoomResponse');
             }
-            $responseClass = $class ?? $this->modx->getOption('zoomx_response_class', null, Response::class, true);
-            $this->response = new $responseClass($this->modx);
+            $responseClass = $class ?? $this->modx->getOption('zoomx_response_class', null, 'ZoomResponse', true);
+            $this->response = new $responseClass($this->modx, ...$params);
         }
 
         return $this->response;
@@ -134,6 +161,7 @@ class Service
 
         return $this->getResponse($class);
     }
+
     /**
      * @param Request|modRequest $request
      * @return $this
@@ -176,6 +204,63 @@ class Service
     }
 
     /**
+     * Creates a FileResponse object.
+     *
+     * @param  string  $path
+     * @param  string  $isAttachment
+     * @param  string  $deleteFileAfterSend
+     * @return FileResponse|modResponse
+     *
+     * @throws Zoomx\Exceptions\FileException
+     */
+    public function getFileResponse($path, $isAttachment = false, $deleteFileAfterSend = false)
+    {
+        $class = $this->modx->getOption('zoomx_file_response_class', null, FileResponse::class);
+
+        return $this->getResponse($class, $path, $isAttachment, $deleteFileAfterSend);
+    }
+
+    /**
+     * Creates a redirect response.
+     *
+     * @param string $url
+     * @param int $status
+     * @param array $headers
+     *
+     * @return RedirectResponse|modResponse
+     *
+     * @throws InvalidArgumentException
+     */
+    public function getRedirectResponse($url, $status = 302, array $headers = [])
+    {
+        $class = $this->modx->getOption('zoomx_file_response_class', null, RedirectResponse::class);
+
+        return $this->getResponse($class, $url, $status, $headers);
+    }
+
+    /**
+     * @return ElementService
+     */
+    public function getElementService()
+    {
+        if (!isset($this->elementService)) {
+            $class = $this->modx->getOption('zoomx_element_service_class', null, ElementService::class, true);
+            $this->elementService = new $class($this->modx);
+        }
+
+        return $this->elementService;
+    }
+
+    public function getView(string $name, array $data)
+    {
+        $class = $this->modx->getOption('zoomx_view_class', null, View::class, true);
+        $view = new $class($name, $data);
+
+        return $view instanceof View ? $view : null;
+    }
+
+    /**
+     * Determine if the given content should be turned into JSON.
      * @return bool
      */
     public function shouldBeJson()
@@ -185,6 +270,7 @@ class Service
     }
 
     /**
+     * Checks for the presence of the HTTP header HTTP_X_REQUESTED_WITH.
      * @return bool
      */
     public function isAjax()
@@ -214,13 +300,45 @@ class Service
         $phpTime = number_format($phpTime, 4) . ' s';
         $memory = number_format(memory_get_usage(true) / 1024, 0, ",", " ") . ' kb';
 
-        return  [
+    return  [
             'total_time' => $totalTime,
             'query_time' => $queryTime,
             'php_time' => $phpTime,
             'queries' => $queries,
             'memory' => $memory,
         ];
+    }
+
+    /**
+     * @return ContentTypeDetector|null
+     */
+    public function getContentTypeDetector()
+    {
+        $class = $this->modx->getOption('zoomx_content_type_detector_class', null, ContentTypeDetector::class);
+        return new $class($this->modx);
+    }
+
+    /**
+     * Resource auto-loading switch
+     * @param bool $value
+     * @return $this
+     */
+    public function autoloadResource(bool $value = true)
+    {
+        $this->modx->setOption('zoomx_autoload_resource', $value);
+
+        return $this;
+    }
+
+    /**
+     * Gets a requested resource and all required data.
+     * @param string|int $identifier
+     * @param array $options
+     * @return \modResource|null
+     */
+    public function getResource($identifier, array $options = [])
+    {
+        return $this->getRequest()->getResource('', $identifier, $options);
     }
 
     /**
@@ -258,6 +376,33 @@ class Service
     }
 
     /**
+     * @return modX
+     */
+    public function getModx()
+    {
+        return $this->modx;
+    }
+
+    /**
+     * Get or set a system config setting.
+     * @param string|array $key
+     * @param null|mixed $default
+     * @return mixed|self
+     */
+    public function config($key, $default = null)
+    {
+        if (is_string($key)) {
+            return $this->modx->getOption($key, null, $default);
+        }
+        if (is_array($key)) {
+            foreach ($key as $k => $v) {
+                $this->modx->setOption($k, $v);
+            }
+        }
+        return $this;
+    }
+
+    /**
      * @param string $className
      * @return false
      * @throws \ReflectionException
@@ -272,6 +417,7 @@ class Service
 
         return is_array($interfaces) && in_array($interface, $interfaces);
     }
+
     /**
      * Get a property.
      *
@@ -283,6 +429,67 @@ class Service
         $method = 'get' . ucfirst($property);
 
         return method_exists($this, $method) ? $this->$method() : null;
+    }
+
+    /**
+     * Replacement for the modX::getChunk() method.
+     * @param string $name
+     * @param array $properties
+     * @return string
+     * @throws \SmartyException|\ReflectionException
+     */
+    public function getChunk(string $name, array $properties = [])
+    {
+        return $this->getElementService()->getChunk($name, $properties);
+    }
+
+    /**
+     * Replacement for modX::snippet() method.
+     * @param string $name
+     * @param array $properties
+     * @return mixed
+     */
+    public function runSnippet(string $name, array $properties = [])
+    {
+        return $this->getElementService()->runSnippet($name, $properties);
+    }
+
+    /**
+     * Executes a file like a snippet.
+     * @param string $name
+     * @param array $scriptProperties
+     * @return mixed
+     */
+    public function runFileSnippet(string $name, array $scriptProperties)
+    {
+        return $this->getElementService()->runFileSnippet($name, $scriptProperties);
+    }
+
+    private function preparePdoToolsAdapter(): void
+    {
+        if (!class_exists('pdoTools')) {
+            $class = $this->modx->getOption('pdoTools.class', null, 'pdotools.pdotools', true);
+            $path = $this->modx->getOption('pdotools_class_path', null, MODX_CORE_PATH . 'components/pdotools/model/', true);
+            $this->modx->loadClass($class, $path, false, true);
+        }
+        if (!class_exists('pdoFetch')) {
+            $class = $this->modx->getOption('pdoFetch.class', null, 'pdotools.pdofetch', true);
+            $path = $this->modx->getOption('pdofetch_class_path', null, MODX_CORE_PATH . 'components/pdotools/model/', true);
+            $this->modx->loadClass($class, $path, false, true);
+        }
+        if (class_exists('pdoTools')) {
+            $this->modx->setOption('pdoTools.class', 'pdoToolsZoomx');
+            $this->modx->setOption('pdotools_class_path', MODX_CORE_PATH . 'components/zoomx/pdotools/');
+        } else {
+            $this->modx->log(\modX::LOG_LEVEL_ERROR, '[pdoToolsZoomx] pdoTools class is not found.');
+        }
+        if (class_exists('pdoFetch')) {
+            $this->modx->setOption('pdoFetch.class', 'pdoFetchZoomx');
+            $this->modx->setOption('pdofetch_class_path', MODX_CORE_PATH . 'components/zoomx/pdotools/');
+        } else {
+            $this->modx->log(\modX::LOG_LEVEL_ERROR, '[pdoFetchZoomx] pdoFetch class is not found.');
+        }
+        include MODX_CORE_PATH . 'components/zoomx/pdotools/pdotoolsadapter.php';
     }
 
     private function __clone() {}

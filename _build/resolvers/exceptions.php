@@ -13,6 +13,7 @@ if ($transport->xpdo) {
                 $content = '<?php
 				
 return [
+    // 422 => \'YourExceptionClass\',
 ];';
                 file_put_contents($file, $content);
             }

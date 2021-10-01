@@ -1,19 +1,30 @@
 <?php
+set_time_limit(0);
+/** @var modX $modx */
+$modx = require __DIR__ . '/bootstrap.php';
+require __DIR__ . '/src/ZoomXPackage.php';
 
-ob_implicit_flush();
-$start = microtime(true);
-/** @var array $config */
-if (!file_exists(__DIR__ . '/config.inc.php')) {
-    exit('Файл настроек "config.inc.php" не найден!');
+if (PHP_SAPI !== 'cli') {
+    ob_start();
 }
-$config = require(__DIR__ . '/config.inc.php');
+$builder = new ZoomXPackage($modx, $modx->config['package_config']);
+$builder->process();
 
-require_once __DIR__ . '/src/ZoomXPackage.php';
+if (PHP_SAPI !== 'cli') {
+    $builder->queueManager->read([
+        'poll_limit' => 1,
+        'msg_limit' => 100,
+    ]);
 
-class_exists(Smarty::class) or require MODX_CORE_PATH . 'model/smarty/Smarty.class.php';
+    $content = ob_get_clean();
+    $time = microtime(true) - $modx->startTime;
 
-$install = new ZoomXPackage(MODX_CORE_PATH, $config);
-$install->process();
+    $response = [
+        'details' => $content,
+        'file' => MODX_CORE_PATH . 'packages/' . $builder->builder->getSignature() . '.transport.zip',
+        'total_time' => number_format($time, 4),
+        'memory' => number_format(memory_get_usage(true) / 1024, 0, ",", " ") . ' kb',
+    ];
 
-$time = microtime(true) - $start;
-echo 'Время: ' . number_format($time, 4) . ' сек.';
+    die(json_encode($response));
+}

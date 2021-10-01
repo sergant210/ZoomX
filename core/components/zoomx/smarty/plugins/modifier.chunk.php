@@ -10,7 +10,5 @@
  */
 function smarty_modifier_chunk($name, $properties = [])
 {
-    $parser = zoomx('parser');
-
-    return $parser->getChunk($name, $properties);
+    return zoomx('elementService')->getChunk($name, $properties);
 }

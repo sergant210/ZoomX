@@ -1,5 +1,22 @@
 Changelog for ZoomX.
 
+3.0.0-beta
+==============
+*******************************************************************************************
+*  WARNING! Only for a new installation. Do not update the previously installed version.  *
+*******************************************************************************************
+- Required PHP Version 7.1+.
+- Added Smarty as a default parser.
+- Added pdoTools adapter that replaces Fenom template engine with Smarty in pdoTools snippets.
+- Added support for file elements (snippets and chunks).
+- Added exception handler with trace details.
+- Added the helper function "filex" for downloading files.
+- Added the helper function "redirectx" for managing redirects.
+- Added onZoomxInit event.
+- Added the ability to extend the Service class using macros.
+- Added Smarty security support.
+- Particular virtual pages.
+
 2.1.1-beta
 ==============
 - Some bugfixes.
@@ -23,13 +40,13 @@ Changelog for ZoomX.
 1.0.2-beta
 ==============
 - Fixed bug with the path for compiled templates.
-- Added "modx" block.
+- Added block "modx".
 
 1.0.1-beta
 ==============
 - Allow the $modx object in templates.
 - Fixed bug with uninstalling.
-- Added 'modx' modifier.
+- Added modifier "modx".
 - Some code refactoring.
 
 1.0.0-beta

@@ -3,7 +3,8 @@ namespace Zoomx;
 
 use modX;
 use modRequest;
-use Zoomx\Exceptions\HttpException;
+use Zoomx\DTO\Error as ErrorData;
+
 
 class Request extends modRequest
 {
@@ -60,11 +61,7 @@ class Request extends modRequest
         $this->modx->invokeEvent('OnHandleRequest');
         if (!$this->modx->checkSiteStatus()) {
             if (zoomx()->getRoutingMode() === Service::ROUTING_STRICT) {
-                try {
-                    abortx(503);
-                } catch (HttpException $e) {
-                    $this->sendErrorPage($e);
-                }
+                abortx(503);
             } else {
                 header($_SERVER['SERVER_PROTOCOL'] . ' 503 Service Unavailable');
                 if (!$this->modx->resourceIdentifier = $this->modx->getOption('site_unavailable_page', null, 1)) {
@@ -79,6 +76,7 @@ class Request extends modRequest
             $this->checkPublishStatus();
             $this->modx->resourceIdentifier = $this->handler->getResourceIdentifier();
         }
+
         $this->modx->beforeRequest();
         $this->modx->invokeEvent("OnWebPageInit");
 
@@ -86,12 +84,8 @@ class Request extends modRequest
             !is_object($this->modx->resource) &&
             $this->autoloadResource())
         {
-            try {
-                if (!$this->modx->resource = $this->getResource('', $this->modx->resourceIdentifier)) {
-                    abortx(404);
-                }
-            } catch (HttpException $e) {
-                $this->sendErrorPage($e);
+            if (!$this->modx->resource = $this->getResource('', $this->modx->resourceIdentifier)) {
+                abortx(404);
             }
         }
 
@@ -188,17 +182,17 @@ class Request extends modRequest
 
     /**
      * Send the user to a MODX virtual error page.
-     * @param \Zoomx\Exceptions\HttpException|null $e
+     * @param ErrorData|array|null $e
      */
-    public function sendErrorPage(HttpException $e = null)
+    public function sendErrorPage($e = null)
     {
         $this->handler->sendErrorPage($e);
     }
 
     private function isApiMode()
     {
-        return  $this->modx->response &&
-                $this->modx->response instanceof Json\ResponseInterface;
+        return  ($this->modx->response && $this->modx->response instanceof Json\ResponseInterface) ||
+                (defined('ZOOMX_API_MODE') && ZOOMX_API_MODE === true);
     }
 
     private function autoloadResource()

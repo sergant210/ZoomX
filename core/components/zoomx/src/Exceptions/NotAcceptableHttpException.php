@@ -16,7 +16,7 @@ class NotAcceptableHttpException extends HttpException
      */
     public function __construct($message = null, Throwable $previous = null, array $headers = [], $code = null)
     {
-        $headers[406] = $_SERVER['SERVER_PROTOCOL'] . ' 406 Not Acceptable';
+        $headers[406] = ($_SERVER['SERVER_PROTOCOL'] ?? 'http') . ' 406 Not Acceptable';
         $message = $message ?? "The request is not acceptable!";
 
         parent::__construct(406, $message, $previous, $headers, $code);

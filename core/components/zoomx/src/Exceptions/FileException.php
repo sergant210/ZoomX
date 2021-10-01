@@ -7,30 +7,19 @@ use Throwable;
 use Zoomx\Contracts\Arrayable;
 
 
-class HttpException extends RuntimeException implements HttpExceptionInterface, Arrayable
+class FileException extends RuntimeException implements Arrayable
 {
-    /** @var int  */
-    protected $statusCode;
     /** @var string */
-    protected $title;
+    protected $title = 'Error';
     /** @var array  */
     protected $headers;
 
-    public function __construct(int $statusCode, string $message = null, Throwable $previous = null, array $headers = [], ?int $code = 0)
+
+    public function __construct(string $message = null, int $code = 0, Throwable $previous = null, array $headers = [])
     {
-        $this->statusCode = $statusCode;
         $this->headers = $headers;
-        $code = $code ?? $statusCode;
 
         parent::__construct($message, $code, $previous);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function getStatusCode()
-    {
-        return $this->statusCode;
     }
 
     /**

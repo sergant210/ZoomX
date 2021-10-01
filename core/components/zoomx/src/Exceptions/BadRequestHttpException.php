@@ -19,7 +19,7 @@ class BadRequestHttpException extends HttpException
      */
     public function __construct($message = null, Throwable $previous = null, array $headers = [], $code = null)
     {
-        $headers[400] = $_SERVER['SERVER_PROTOCOL'] . ' 400 Bad Request';
+        $headers[400] = ($_SERVER['SERVER_PROTOCOL'] ?? 'http') . ' 400 Bad Request';
         $message = $message ?? "Check your request or cookies.";
 
         parent::__construct(400, $message, $previous, $headers, $code);

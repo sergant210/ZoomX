@@ -8,9 +8,7 @@ if (!function_exists('zoomx')) {
      */
     function zoomx($property = null)
     {
-        global $modx;
-
-        $instance = Zoomx\Service::getInstance($modx);
+        $instance = Zoomx\Service::getInstance();
 
         return empty($property) ? $instance : $instance->{$property};
     }
@@ -19,19 +17,18 @@ if (!function_exists('zoomx')) {
 if (!function_exists('parserx')) {
     /**
      * ZoomX helper for the current parser.
-     * @return mixed
+     * @return \modParser|\Zoomx\Contracts\ParserInterface
+     * @throws \ReflectionException
      */
     function parserx()
     {
-        global $modx;
-
-        return Zoomx\Service::getInstance($modx)->getParser();
+        return Zoomx\Service::getInstance()->getParser();
     }
 }
 
 if (! function_exists('viewx')) {
     /**
-     * Get the evaluated view contents for the given view.
+     * Get a view object for the given template.
      *
      * @param  string  $tpl
      * @param  array   $data
@@ -39,7 +36,7 @@ if (! function_exists('viewx')) {
      */
     function viewx($tpl, $data = [])
     {
-        return new Zoomx\View($tpl, $data);
+        return Zoomx\Service::getInstance()->getView($tpl, $data);
     }
 }
 
@@ -53,7 +50,7 @@ if (! function_exists('jsonx')) {
      */
     function jsonx(array $data = [], array $headers = [])
     {
-        $response = zoomx()->getJsonResponse();
+        $response = Zoomx\Service::getInstance()->getJsonResponse();
         if (!empty($headers)) {
             $response->headers->add($headers);
         }
@@ -75,6 +72,39 @@ if (! function_exists('abortx')) {
      */
     function abortx($code, $message = null, $title = null, array $headers = [])
     {
-        zoomx()->abort($code, $message, $title, $headers);
+        Zoomx\Service::getInstance()->abort($code, $message, $title, $headers);
+    }
+}
+
+if (! function_exists('filex')) {
+    /**
+     * Creates a FileResponse object.
+     *
+     * @param  string  $path
+     * @param  bool  $isAttachment
+     * @param  bool  $deleteFileAfterSend
+     * @return Zoomx\FileResponse
+     *
+     * @throws Zoomx\Exceptions\FileException
+     */
+    function filex($path, $isAttachment = false, $deleteFileAfterSend = false)
+    {
+        return Zoomx\Service::getInstance()->getFileResponse($path, $isAttachment, $deleteFileAfterSend);
+    }
+}
+
+if (! function_exists('redirectx')) {
+    /**
+     * Creates a Redirect response object.
+     *
+     * @param string $url
+     * @param int $status
+     * @param array $headers
+     *
+     * @return \Zoomx\RedirectResponse|\modResponse
+     */
+    function redirectx($url, $status = 302, array $headers = [])
+    {
+        return Zoomx\Service::getInstance()->getRedirectResponse($url, $status, $headers);
     }
 }

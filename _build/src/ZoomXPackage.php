@@ -13,24 +13,25 @@ class ZoomXPackage
     public $category;
     public $category_attributes = [];
 
+    /** @var modDbRegister $queueManager */
+    public $queueManager;
+    /** @var int */
+    protected $time;
+    /** @var int */
     protected $_idx = 1;
+
+    protected $logger;
 
 
     /**
      * ZoomXPackage constructor.
      *
-     * @param $core_path
+     * @param modX $modx
      * @param array $config
      */
-    public function __construct($core_path, array $config = [])
+    public function __construct(modX $modx, array $config = [])
     {
-        /** @noinspection PhpIncludeInspection */
-        require($core_path . 'model/modx/modx.class.php');
-        /** @var modX $modx */
-        $this->modx = new modX();
-        $this->modx->initialize('mgr');
-        $this->modx->getService('error', 'error.modError');
-
+        $this->modx = $modx;
         $root = dirname(__FILE__, 3) . '/';
         $assets = $root . 'assets/components/' . $config['name_lower'] . '/';
         $core = $root . 'core/components/' . $config['name_lower'] . '/';
@@ -47,13 +48,29 @@ class ZoomXPackage
             'assets' => $assets,
             'core' => $core,
         ], $config);
-        $this->modx->setLogLevel($this->config['log_level']);
-        $this->modx->setLogTarget($this->config['log_target']);
+        $modx->setLogLevel($this->config['log_level']);
+        $modx->setLogTarget($this->config['log_target']);
+
+        $this->time = $modx->startTime;
+
+        if (PHP_SAPI === 'cli') {
+            include dirname(__DIR__) . '/src/CliLogger.php';
+            $this->logger = new CliLogger($modx);
+        } else {
+            $this->initRegistry();
+            include dirname(__DIR__) . '/src/QueueLogger.php';
+            $this->logger = new QueueLogger($modx, $this);
+        }
 
         $this->initialize();
     }
 
-
+    protected function initRegistry()
+    {
+        $registry = $this->modx->getService('registry', 'registry.modRegistry');
+        $this->queueManager = $registry->getRegister('package_builder', 'registry.modDbRegister');
+        $this->queueManager->subscribe('/messages/');
+    }
     /**
      * Initialize package builder
      */
@@ -61,7 +78,7 @@ class ZoomXPackage
     {
         $this->builder = $this->modx->getService('transport.modPackageBuilder');
         $this->builder->createPackage($this->config['name_lower'], $this->config['version'], $this->config['release']);
-        $this->info('Транспортный пакет инстанциирован.');
+        $this->info('Инициализация транспортного пакета.');
         $this->builder->registerNamespace($this->config['name_lower'], false, true, '{core_path}components/' . $this->config['name_lower'] . '/');
         $this->info('Пространство имён зарегистрировано.');
 
@@ -77,6 +94,54 @@ class ZoomXPackage
         $this->info('Категория создана.');
     }
 
+    public function process()
+    {
+        $this->model();
+        $this->assets();
+
+        // Add elements
+        $elements = scandir($this->config['elements']);
+        foreach ($elements as $element) {
+            if (in_array($element[0], ['_', '.'])) {
+                continue;
+            }
+            $name = preg_replace('#\.php$#', '', $element);
+            if (method_exists($this, $name)) {
+                $this->{$name}();
+            }
+        }
+
+        // Create main vehicle
+        /** @var modTransportVehicle $vehicle */
+        $vehicle = $this->builder->createVehicle($this->category, $this->category_attributes);
+
+        // Files resolvers
+        $vehicle->resolve('file', [
+            'source' => $this->config['core'],
+            'target' => "return MODX_CORE_PATH . 'components/';",
+        ]);
+//        $vehicle->resolve('file', [
+//            'source' => $this->config['assets'],
+//            'target' => "return MODX_ASSETS_PATH . 'components/';",
+//        ]);
+        $this->resolvers($vehicle);
+
+        $this->builder->putVehicle($vehicle);
+
+        $this->builder->setPackageAttributes([
+            'changelog' => file_get_contents($this->config['core'] . 'docs/changelog.txt'),
+            'license' => file_get_contents($this->config['core'] . 'docs/license.txt'),
+            'readme' => file_get_contents($this->config['core'] . 'docs/readme.txt'),
+        ]);
+        $this->info('Добавлены атрибуты пакета.');
+
+        $this->builder->pack();
+        $this->info('Упаковка транспортного пакета в zip файл.');
+
+        if (!empty($this->config['install'])) {
+            $this->install();
+        }
+    }
 
     /**
      * Update the model
@@ -166,7 +231,7 @@ class ZoomXPackage
             $vehicle = $this->builder->createVehicle($setting, $attributes);
             $this->builder->putVehicle($vehicle);
         }
-        $this->info('Упаковано ' . count($settings) . ' системных настроек.');
+        $this->info('Упаковано системных настроек: ' . count($settings) . '.');
     }
 
 
@@ -205,7 +270,7 @@ class ZoomXPackage
                 $this->builder->putVehicle($vehicle);
             }
         }
-        $this->info('Упаковано ' . count($menus) . ' меню.');
+        $this->info('Упаковано меню: ' . count($menus) . '.');
     }
 
 
@@ -217,7 +282,7 @@ class ZoomXPackage
         /** @noinspection PhpIncludeInspection */
         $widgets = include($this->config['elements'] . 'widgets.php');
         if (!is_array($widgets)) {
-            $this->error(modX::LOG_LEVEL_ERROR, 'Виджеты не заданы.');
+            $this->error('Виджеты не заданы.');
 
             return;
         }
@@ -237,7 +302,7 @@ class ZoomXPackage
             $vehicle = $this->builder->createVehicle($widget, $attributes);
             $this->builder->putVehicle($vehicle);
         }
-        $this->info('Упаковано ' . count($widgets) . ' виджетов.');
+        $this->info('Упаковано виджетов: ' . count($widgets) . '.');
     }
 
 
@@ -281,7 +346,7 @@ class ZoomXPackage
             $vehicle = $this->builder->createVehicle($resource, $attributes);
             $this->builder->putVehicle($vehicle);
         }
-        $this->info('Упаковано ' . count($objects) . ' ресурсов.');
+        $this->info('Упаковано ресурсов: ' . count($objects) . '.');
     }
 
 
@@ -343,7 +408,7 @@ class ZoomXPackage
             $objects[] = $plugin;
         }
         $this->category->addMany($objects);
-        $this->info('Упаковано ' . count($objects) . ' плагинов.');
+        $this->info('Упаковано плагинов: ' . count($objects) . '.');
     }
 
 
@@ -388,7 +453,7 @@ class ZoomXPackage
             $objects[$name]->setProperties($properties);
         }
         $this->category->addMany($objects);
-        $this->info('Упаковано ' . count($objects) . ' сниппетов.');
+        $this->info('Упаковано сниппетов: ' . count($objects) . '.');
     }
 
 
@@ -425,7 +490,7 @@ class ZoomXPackage
             $objects[$name]->setProperties(@$data['properties']);
         }
         $this->category->addMany($objects);
-        $this->info('Упаковано ' . count($objects) . ' чанков.');
+        $this->info('Упаковано чанков: ' . count($objects) . '.');
     }
 
 
@@ -461,7 +526,7 @@ class ZoomXPackage
             ], $data), '', true, true);
         }
         $this->category->addMany($objects);
-        $this->info('Упаковано ' . count($objects) . ' шаблонов ресурсов.');
+        $this->info('Упаковано шаблонов ресурсов: ' . count($objects) . '.');
     }
 
 
@@ -491,7 +556,7 @@ class ZoomXPackage
             $vehicle = $this->builder->createVehicle($policy, $attributes);
             $this->builder->putVehicle($vehicle);
         }
-        $this->info('Упаковано ' . count($policies) . ' политик доступа.');
+        $this->info('Упаковано политик доступа: ' . count($policies) . '.');
     }
 
 
@@ -538,7 +603,7 @@ class ZoomXPackage
             $vehicle = $this->builder->createVehicle($permission, $attributes);
             $this->builder->putVehicle($vehicle);
         }
-        $this->info('Упаковано ' . count($policy_templates) . ' шаблонов политик доступа.');
+        $this->info('Упаковано шаблонов политик доступа:' . count($policy_templates) . '.');
     }
 
 
@@ -620,14 +685,9 @@ class ZoomXPackage
     protected function resolvers(modTransportVehicle $vehicle)
     {
         // Add resolvers into vehicle
-        $resolvers = scandir($this->config['resolvers']);
-
-        foreach ($resolvers as $resolver) {
-            if (in_array($resolver[0], ['_', '.'])) {
-                continue;
-            }
-            if ($vehicle->resolve('php', ['source' => $this->config['resolvers'] . $resolver])) {
-                $this->info('Добавлен резолвер "' . preg_replace('#\.php$#', '', $resolver) . '".');
+        foreach (glob($this->config['resolvers'] . '[!_.]*.php') as $resolver) {
+            if ($vehicle->resolve('php', ['source' => $resolver])) {
+                $this->info('Добавлен резолвер "' . preg_replace('#\.php$#', '', basename($resolver)) . '".');
             }
         }
     }
@@ -674,85 +734,22 @@ class ZoomXPackage
         }
     }
 
-
-    public function process()
+    public function getTime()
     {
-        $this->model();
-        $this->assets();
+        $time = microtime(true);
+        $diff = $time - $this->time - 0.2;
+        $this->time = $time;
 
-        // Add elements
-        $elements = scandir($this->config['elements']);
-        foreach ($elements as $element) {
-            if (in_array($element[0], ['_', '.'])) {
-                continue;
-            }
-            $name = preg_replace('#\.php$#', '', $element);
-            if (method_exists($this, $name)) {
-                $this->{$name}();
-            }
-        }
-
-        // Create main vehicle
-        /** @var modTransportVehicle $vehicle */
-        $vehicle = $this->builder->createVehicle($this->category, $this->category_attributes);
-
-        // Files resolvers
-        $vehicle->resolve('file', [
-            'source' => $this->config['core'],
-            'target' => "return MODX_CORE_PATH . 'components/';",
-        ]);
-//        $vehicle->resolve('file', [
-//            'source' => $this->config['assets'],
-//            'target' => "return MODX_ASSETS_PATH . 'components/';",
-//        ]);
-        $this->resolvers($vehicle);
-
-        $this->builder->putVehicle($vehicle);
-
-        $this->builder->setPackageAttributes([
-            'changelog' => file_get_contents($this->config['core'] . 'docs/changelog.txt'),
-            'license' => file_get_contents($this->config['core'] . 'docs/license.txt'),
-            'readme' => file_get_contents($this->config['core'] . 'docs/readme.txt'),
-        ]);
-        $this->info('Добавлены атрибуты пакета.');
-
-        $this->info('Упаковка транспортного пакета в zip файл.');
-        $this->builder->pack();
-        $this->info('Транспортный пакет готов.');
-
-        if (!empty($this->config['install'])) {
-            $this->install();
-        }
-
-        if (!empty($this->config['download'])) {
-            $this->download();
-        }
-
-    }
-
-    protected function download()
-    {
-        $name = $this->builder->getSignature() . '.transport.zip';
-        if ($content = file_get_contents(MODX_CORE_PATH . '/packages/' . $name)) {
-            header('Content-Description: File Transfer');
-            header('Content-Type: application/octet-stream');
-            header('Content-Disposition: attachment; filename=' . $name);
-            header('Content-Transfer-Encoding: binary');
-            header('Expires: 0');
-            header('Cache-Control: must-revalidate');
-            header('Pragma: public');
-            header('Content-Length: ' . strlen($content));
-            exit($content);
-        }
+        return number_format($diff, 4);
     }
 
     protected function info($message = '')
     {
-        echo str_pad('<div>INFO: '. $message . '</div>', 10240);
+        $this->logger->info($message);
     }
 
     protected function error($message = '')
     {
-        echo str_pad('<div>ERROR: '. $message . '</div>', 10240);
+        $this->logger->error($message);
     }
 }

@@ -2,10 +2,9 @@
 namespace Zoomx;
 
 use modResource;
+use modTemplate;
 use Smarty as BaseSmarty;
 use modX;
-use modElement;
-use SmartyException;
 
 class Smarty extends BaseSmarty implements Contracts\ParserInterface
 {
@@ -13,10 +12,6 @@ class Smarty extends BaseSmarty implements Contracts\ParserInterface
     protected $modx;
     /** @var Service  */
     protected $zoomService;
-    /** @var Repository  */
-    protected $chunkRepository;
-    /** @var Repository  */
-    protected $snippetRepository;
     /** @var View */
     protected $tpl;
 
@@ -30,13 +25,11 @@ class Smarty extends BaseSmarty implements Contracts\ParserInterface
 
         $this->modx = $modx;
         $this->zoomService = $zoomService;
-        $this->chunkRepository = new Repository();
-        $this->snippetRepository = new Repository();
 
-        $corePath = $modx->getOption('zoomx_core_path', null, MODX_CORE_PATH . 'components/zoomx/');
+        $corePath = dirname(__DIR__) . '/';
         $cachePath = $modx->getCachePath();
         $theme = str_replace(['.', '/'], '', trim($modx->getOption('zoomx_theme', null, 'default')));
-        $this->template_dir = $modx->getOption('zoomx_template_dir', null, $corePath . 'templates/') . ($theme ? $theme . '/' : '');
+        $this->addTemplateDir($modx->getOption('zoomx_template_dir', null, $corePath . 'templates/') . ($theme ? $theme . '/' : ''));
         $this->cache_dir = $cachePath . ltrim($modx->getOption('zoomx_smarty_cache_dir', null, 'zoomx/smarty/cache/'), '/');
         $this->compile_dir = $cachePath . ltrim($modx->getOption('zoomx_smarty_compile_dir', null, 'zoomx/smarty/compiled/'), '/');
         $this->setConfigDir($modx->getOption('zoomx_smarty_config_dir', null, $corePath . 'config/'));
@@ -44,34 +37,55 @@ class Smarty extends BaseSmarty implements Contracts\ParserInterface
         // Set caching mode
         $this->caching = $modx->getOption('cache_resource', null, true)
             ? $modx->getOption('zoomx_caching', null, Smarty::CACHING_LIFETIME_CURRENT)
-            : Smarty::CACHING_OFF;
+            : BaseSmarty::CACHING_OFF;
         $this->cache_lifetime = (int)$modx->getOption('cache_resource_expires', null, 0);
         $this->cache_lifetime = $this->cache_lifetime > 0 ? $this->cache_lifetime : -1;
+
         // Set plugin directories
         $pluginsDir = [
-            $corePath . 'smarty_plugins/',
+            $corePath . 'smarty/plugins/',
         ];
-
-        $customPluginDir = $modx->getOption('zoomx_smarty_custom_plugin_dir', null, '');
+        $customPluginDir = $modx->getOption('zoomx_smarty_custom_plugin_dir', null, '{core_path}components/zoomx/smarty/custom_plugins/');
         if (!empty($customPluginDir)) {
             $pluginsDir[] = $customPluginDir;
         }
         $this->addPluginsDir($pluginsDir);
+
+        // Enable security
+        if ($modx->getOption('zoomx_smarty_security_enable', null, false)) {
+            $securityClass = $this->getSecurityClass($corePath);
+            empty($securityClass) or $this->enableSecurity($securityClass);
+        }
+
         // Set prefilters
         $this->loadPrefilters();
 
         // Register shorthand modifiers
-        $this->registerShortModifiers($corePath . 'smarty_plugins/');
+        $this->registerShortModifiers($corePath . 'smarty/plugins/');
 
         // Get available $modx object in the templates
         if ($modx->getOption('zoomx_include_modx', null, true)) {
             $this->assign('modx', $modx, true);
+            $this->assign('zoomx', $zoomService, true);
         }
+    }
+
+    protected function getSecurityClass($corePath)
+    {
+        if ($securityClass = $this->modx->getOption('zoomx_smarty_security_class', null, '')) {
+            $FQN = $corePath . "smarty/security/$securityClass.php";
+            if (!file_exists($FQN)) {
+                $this->modx->log(modX::LOG_LEVEL_ERROR, "Class $securityClass not found.");
+            } else {
+                include $FQN;
+            }
+        }
+        return $securityClass ?? '';
     }
 
     protected function loadPrefilters()
     {
-        $preFilters = ['scripts', 'ignore'];
+        $preFilters = ['scripts', 'ignore', 'include'];
         if ($this->modx->getOption('zoomx_modx_tag_syntax', null, true)) {
             $preFilters[] = 'modxtags';
         }
@@ -101,52 +115,76 @@ class Smarty extends BaseSmarty implements Contracts\ParserInterface
     {
         $output = '';
 
-        if ($this->hasTpl()) {
-            if ($this->templateExists($this->tpl->name)) {
-                if (isset($resource)) {
-                    $this->setCaching($this->caching && $resource->cacheable);
-                    $cacheId = "doc_" . $resource->id;
-                } else {
-                    $this->setCaching($this->caching);
-                    $cacheId = null;
-                }
-
-                try {
-                    if ($this->tpl->hasData()) {
-                        $this->assign($this->tpl->data);
-                    }
-                    $output = $this->fetch($this->tpl->name, $cacheId);
-                    $output = $output === false ? '' : $output;
-                } catch (SmartyException $e) {
-                    $this->modx->log(MODX::LOG_LEVEL_ERROR, $e->getMessage());
-                    $output = str_replace(MODX_BASE_PATH, '.../', $e->getMessage());
-                }
-            } elseif ($this->tpl->hasContent()) {
-                $output = $this->tpl->content;
+        if (!$this->hasTpl()) {
+            return $output;
+        }
+        if ($this->templateExists($this->tpl->name)) {
+            if (isset($resource)) {
+                $this->setCaching($this->caching && $resource->cacheable);
+                $cacheId = "doc_" . $resource->id;
             } else {
-                $this->modx->log(modX::LOG_LEVEL_ERROR, $this->modx->lexicon('zoomx_template_not_found', ['name' => $this->tpl]));
+                $this->setCaching($this->caching);
+                $cacheId = null;
             }
-            if ($resource) {
-                $resource->setProcessed(true);
+
+            if ($this->tpl->hasData()) {
+                $this->assign($this->tpl->data);
             }
+            $output = $this->fetch($this->tpl->name, $cacheId);
+            $output = $output === false ? '' : $output;
+
+        } elseif ($this->tpl->hasContent()) {
+            $output = $this->tpl->content;
+        } else {
+            $this->modx->log(modX::LOG_LEVEL_ERROR, $this->modx->lexicon('zoomx_template_not_found', ['name' => $this->tpl]));
+        }
+        if (isset($resource)) {
+            $resource->setProcessed(true);
         }
 
         return $output;
     }
 
     /**
+     * @param modResource $resource
+     * @return string
+     * @throws \SmartyException
+     */
+    public function processResource($resource)
+    {
+        if (!$resource->_processed) {
+            $resource->_output = $content = '';
+            if (empty($resource->_content)) {
+                /** @var modTemplate $baseElement */
+                $baseElement = $resource->getOne('Template');
+                $resource->_content = isset($baseElement) ? $baseElement->getContent() : $resource->getContent();
+            }
+            if (!empty($resource->_content)) {
+                $content = $this->parse($resource->_content);
+            }
+            $resource->setProcessed(true);
+        } else {
+            $content = $resource->_output;
+        }
+        return $content;
+    }
+
+    /**
      * {@inheritDoc}
      */
-    public function parse($string, array $properties = [])
+    public function parse($string, array $properties = [], $isFile = false)
     {
         if (empty($string)) {
             return '';
         }
-        $tmpl = $this->createTemplate('string:' . $string, $this);
+        if (!$isFile) {
+            $string = 'string:' . $string;
+        }
+        $tmpl = $this->createTemplate($string);
         if (!empty($properties)) {
             $tmpl->assign($properties);
         }
-        $tmpl->caching = Smarty::CACHING_OFF;
+        $tmpl->caching = BaseSmarty::CACHING_OFF;
 
         return $tmpl->fetch();
     }
@@ -163,7 +201,7 @@ class Smarty extends BaseSmarty implements Contracts\ParserInterface
         if ($tpl instanceof View) {
             $this->tpl = $tpl;
         } else {
-            $this->tpl = new View((string)$tpl, $data);
+            $this->tpl = $this->zoomService->getView($tpl, $data);
         }
 
         return $this;
@@ -183,158 +221,6 @@ class Smarty extends BaseSmarty implements Contracts\ParserInterface
     public function hasTpl()
     {
         return isset($this->tpl);
-    }
-    /**
-     * Replacement for modX::getChunk() method.
-     * @param string $name
-     * @param array $properties
-     * @return false|string
-     * @throws SmartyException
-     */
-    public function getChunk($name, array $properties = [])
-    {
-        $name = trim($name);
-        if (empty($name)) {
-            return '';
-        }
-
-        if (strpos($name, '@INLINE') === 0) {
-            $content = preg_replace('#^@[A-Z]+:?\s+#', '', $name);
-            $name = 'INLINE_' . md5($content);
-            if (!$chunk = $this->chunkRepository->get($name)) {
-                $chunk = $this->modx->newObject('modChunk', [
-                    'id' => 0,
-                    'name' => $name,
-                    'content' => $content,
-                ]);
-            }
-            //$this->modx->sourceCache['modChunk'][$name] = ['fields' => $chunk->toArray(), 'policies' => []];
-        } else {
-            $propertySet = '';
-            if (strpos($name, '@') !== false) {
-                list($name, $propertySet) = explode('@', $name, 2);
-            }
-            if (!$chunk = $this->chunkRepository->get($name)) {
-                /** @var \modChunk $chunk */
-                $chunk = $this->getElement('modChunk', $name);
-                if (is_null($chunk)) {
-                    $chunk = $this->modx->newObject('modChunk', [
-                        'id' => 0,
-                        'name' => $name,
-                        'content' => '',
-                    ]);
-                }
-                if ($chunk->id && !empty($propertySet)) {
-                    //TODO: store $propertySet in the cache
-                    $chunk->set('name', $propertySet ? "{$name}@{$propertySet}" : $name);
-                }
-            }
-            //TODO: this code uses MODX parser
-            $properties = $chunk->getProperties($properties);
-            $content = $chunk->get('content');
-        }
-        $properties = $this->processProperties($properties);
-        $this->chunkRepository->add($name, $chunk);
-
-        return $this->parse($content, $properties);
-    }
-
-    /**
-     * Get a modElement instance taking advantage of the modX::$sourceCache.
-     *
-     * @param string $class The modElement derivative class to load.
-     * @param string $name An element name or raw tagName to identify the modElement instance.
-     * @return modElement|null An instance of the specified modElement derivative class.
-     */
-    public function getElement(string $class, string $name)
-    {
-        if (array_key_exists($class, $this->modx->sourceCache) && array_key_exists($name, $this->modx->sourceCache[$class])) {
-            /** @var modElement $element */
-            $element = $this->modx->newObject($class);
-            $element->fromArray($this->modx->sourceCache[$class][$name]['fields'], '', true, true);
-            $element->setPolicies($this->modx->sourceCache[$class][$name]['policies']);
-
-            if (!empty($this->modx->sourceCache[$class][$name]['source']) && !empty($this->modx->sourceCache[$class][$name]['source']['class_key'])) {
-                $sourceClassKey = $this->modx->sourceCache[$class][$name]['source']['class_key'];
-                $this->modx->loadClass('sources.modMediaSource');
-                /* @var \modMediaSource $source */
-                $source = $this->modx->newObject($sourceClassKey);
-                $source->fromArray($this->modx->sourceCache[$class][$name]['source'], '', true, true);
-                $element->addOne($source, 'Source');
-            }
-        } else {
-            /** @var modElement $element */
-            $element = $this->modx->getObjectGraph($class, ['Source' => []], ['name' => $name], true);
-            if ($element && array_key_exists($class, $this->modx->sourceCache)) {
-                $this->modx->sourceCache[$class][$name] = [
-                    'fields' => $element->toArray(),
-                    'policies' => $element->getPolicies(),
-                    'source' => $element->Source ? $element->Source->toArray() : [],
-                ];
-            }
-        }
-
-        return $element;
-    }
-
-    /**
-     * Replacement for modX::snippet() method.
-     * @param string $name
-     * @param array $properties
-     * @return bool|mixed|string
-     */
-    public function runSnippet($name, array $properties = [])
-    {
-        $name = trim($name);
-        if (empty($name)) {
-            return '';
-        }
-
-        $propertySet = '';
-        if (strpos($name, '@') !== false) {
-            list($name, $propertySet) = explode('@', $name, 2);
-        }
-        if (!$snippet = $this->snippetRepository->get($name)) {
-            /** @var \modSnippet $snippet */
-            $snippet = $this->getElement('modSnippet', $name);
-            if (is_null($snippet)) {
-                $snippet = $this->modx->newObject('modSnippet', [
-                    'id' => 0,
-                    'name' => $name,
-                    'snippet' => 'return;',
-                ]);
-            }
-            if ($snippet->id && !empty($propertySet)) {
-                //TODO: store $propertySet in the cache
-                $snippet->set('name', "$name@$propertySet");
-            }
-        }
-        //$properties = $this->processProperties($properties);
-        $this->snippetRepository->add($name, $snippet);
-        //TODO: сделать отдельный механизм без парсера MODX.
-        $snippet->_cacheable = false;
-        $snippet->_processed = false;
-        $snippet->_propertyString = '';
-        $snippet->_tag = '';
-
-        return $snippet->process($properties);
-    }
-
-    /**
-     * Parse element properties.
-     * @param array $properties
-     * @return array
-     * @throws SmartyException
-     */
-    protected function processProperties(array $properties = []): array
-    {
-        foreach ($properties as $name => $property) {
-            if (strpos($property, $this->left_delimiter) !== false) {
-                $properties[$name] = $this->parse($property);
-            }
-        }
-
-        return $properties;
     }
 
     /**

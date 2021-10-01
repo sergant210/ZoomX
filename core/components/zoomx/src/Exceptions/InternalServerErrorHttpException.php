@@ -18,7 +18,7 @@ class InternalServerErrorHttpException extends HttpException
      */
     public function __construct(string $message = null, Throwable $previous = null, array $headers = [], int $code = null)
     {
-        $headers[500] = $_SERVER['SERVER_PROTOCOL'] . ' 500 Internal Server Error';
+        $headers[500] = ($_SERVER['SERVER_PROTOCOL'] ?? 'http') . ' 500 Internal Server Error';
         $message = $message ?? "The server encountered an unexpected condition that prevents it from executing the request.";
 
         parent::__construct(500, $message, $previous, $headers, $code);

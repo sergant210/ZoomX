@@ -17,7 +17,7 @@ class UnauthorizedHttpException extends HttpException
      */
     public function __construct($message = null, Throwable $previous = null, array $headers = [], $code = null)
     {
-        $headers[401] = $_SERVER['SERVER_PROTOCOL'] . ' 401 Unauthorized';
+        $headers[401] = ($_SERVER['SERVER_PROTOCOL'] ?? 'http') . ' 401 Unauthorized';
         $message = $message ?? "You are not authorized to view the requested content.";
 
         parent::__construct(401, $message, $previous, $headers, $code);

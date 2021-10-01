@@ -17,7 +17,7 @@ class MethodNotAllowedHttpException extends HttpException
      */
     public function __construct(array $allow, string $message = null, Throwable $previous = null, array $headers = [], $code = null)
     {
-        $headers[405] = $_SERVER['SERVER_PROTOCOL'] . ' 405 Method Not Allowed';
+        $headers[405] = ($_SERVER['SERVER_PROTOCOL'] ?? 'http') . ' 405 Method Not Allowed';
         $headers['Allow'] = strtoupper(implode(', ', $allow));
         $message = $message ?? "Method {$this->getMethod()} is not allowed. Use one of these [{$headers['Allow']}].";
 

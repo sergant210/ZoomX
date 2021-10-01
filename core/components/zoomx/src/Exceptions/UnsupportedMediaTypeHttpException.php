@@ -18,7 +18,7 @@ class UnsupportedMediaTypeHttpException extends HttpException
      */
     public function __construct(string $message = null, Throwable $previous = null, array $headers = [], int $code = null)
     {
-        $headers[415] = $_SERVER['SERVER_PROTOCOL'] . ' 415 Unsupported Media Type';
+        $headers[415] = ($_SERVER['SERVER_PROTOCOL'] ?? 'http') . ' 415 Unsupported Media Type';
         $message = $message ?? "Make sure you send the correct request type.";
 
         parent::__construct(415, $message, $previous, $headers, $code);

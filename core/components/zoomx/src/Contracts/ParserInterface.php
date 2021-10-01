@@ -16,12 +16,13 @@ interface ParserInterface
     public function process(modResource $resource = null);
 
     /**
-     * @param string $string Content for parsing
+     * @param string $string Content for parsing or a template file name.
      * @param array $properties
+     * @param bool $isFile
      * @return false|string
      * @throws SmartyException
      */
-    public function parse($string, array $properties = []);
+    public function parse($string, array $properties = [], $isFile = false);
 
     /**
      * Clear cache.

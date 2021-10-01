@@ -19,7 +19,7 @@ class NotFoundHttpException extends HttpException
      */
     public function __construct($message = null, Throwable $previous = null, array $headers = [], $code = null)
     {
-        $headers[404] = $_SERVER['SERVER_PROTOCOL'] . ' 404 Not Found';
+        $headers[404] = ($_SERVER['SERVER_PROTOCOL'] ?? 'http') . ' 404 Not Found';
         $message = $message ?? "The page you requested was not found.";
 
         parent::__construct(404, $message, $previous, $headers, $code);

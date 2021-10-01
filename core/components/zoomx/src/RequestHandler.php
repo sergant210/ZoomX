@@ -5,7 +5,7 @@ use xPDO;
 use modX;
 use xPDOCacheManager;
 use modResource;
-use Zoomx\Exceptions\HttpException;
+use Zoomx\DTO\Error as ErrorData;
 
 abstract class RequestHandler
 {
@@ -122,11 +122,7 @@ abstract class RequestHandler
                     return null;
                 }
                 if (!$resource->checkPolicy('view')) {
-                    try {
-                        abortx(403);
-                    } catch (HttpException $e) {
-                        $this->sendErrorPage($e);
-                    }
+                    abortx(403);
                 }
             } else {
                 return null;
@@ -149,11 +145,7 @@ abstract class RequestHandler
                     return null;
                 }
                 if (!$resource->checkPolicy('view')) {
-                    try {
-                        abortx(403);
-                    } catch (HttpException $e) {
-                        $this->sendErrorPage($e);
-                    }
+                    abortx(403);
                 }
                 if ($tvs = $resource->getMany('TemplateVars', 'all')) {
                     /** @var \modTemplateVar $tv */
@@ -178,9 +170,9 @@ abstract class RequestHandler
     }
 
     /**
-     * @param \Zoomx\Exceptions\HttpException|null $e
+     * @param ErrorData|array|null $error
      */
-    public function sendErrorPage(HttpException $e = null)
+    public function sendErrorPage($error = null)
     {
         $this->modx->sendErrorPage();
     }

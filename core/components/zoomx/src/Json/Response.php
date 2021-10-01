@@ -3,16 +3,16 @@ namespace Zoomx\Json;
 
 use modResponse;
 use modX;
-use Zoomx\Repository;
+use Zoomx\Support\Repository;
 
-class Response extends modResponse implements ResponseInterface
+class Response extends modResponse
 {
     /** @var array */
     protected $data = [];
     /** @var Repository */
     protected $headers;
-    /** @var ResponseHandler */
-    protected $handler;
+    /** @var int */
+    protected $statusCode = 200;
 
 
     /**
@@ -21,13 +21,22 @@ class Response extends modResponse implements ResponseInterface
     public function __construct(modX $modx)
     {
         parent::__construct($modx);
-        session_register_shutdown();
         $contentType = 'application/json';
         if ($charset = $modx->getOption('modx_charset', null, 'UTF-8')) {
             $contentType .= '; charset=' . $charset;
         }
         $this->headers = new Repository(['Content-Type'=> $contentType]);
-        $this->handler = $this->getHandler();
+    }
+
+    /**
+     * @param array $data
+     * @return $this
+     */
+    public function addData(array $data)
+    {
+        $this->data = array_merge($this->data, $data);
+
+        return $this;
     }
 
     /**
@@ -50,29 +59,24 @@ class Response extends modResponse implements ResponseInterface
     }
 
     /**
-     * @return ResponseHandler
+     * @param int $code
+     * @return $this
      */
-    public function getHandler()
+    public function setStatusCode(int $code)
     {
-        if ($this->handler === null || !$this->handler instanceof SuccessResponseHandler) {
-            $class = $this->modx->getOption('zoomx_response_handler_class', null, SuccessResponseHandler::class, true);
-            $this->handler = new $class;
+        if ($code >= 100 && $code < 600) {
+            $this->statusCode = $code;
         }
 
-        return $this->handler;
+        return $this;
     }
 
     /**
-     * @return ResponseHandler
+     * @return int
      */
-    public function getErrorHandler()
+    public function getStatusCode()
     {
-        if ($this->handler === null || !$this->handler instanceof ErrorResponseHandler) {
-            $class = $this->modx->getOption('zoomx_error_response_handler_class', null, ErrorResponseHandler::class, true);
-            $this->handler = new $class;
-        }
-
-        return $this->handler;
+        return $this->statusCode;
     }
 
     /**
@@ -82,13 +86,29 @@ class Response extends modResponse implements ResponseInterface
     {
         while (ob_get_level() && @ob_end_clean()) {}
         $this->sendHeaders();
-        echo $this->handler->prepare($this->data)->addData(['meta' => zoomx()->getRequestInfo()]);
-
+        echo $this->prepare();
         exit();
     }
 
     /**
-     * @return \Zoomx\Repository
+     * Prepare response data to a formatted array.
+     * @return string
+     */
+    protected function prepare(array $data = [])
+    {
+        $output = [
+            'success' => $this->statusCode < 400,
+            'data' => array_merge($this->data, $data),
+        ];
+        if ($this->modx->getOption('zoomx_include_request_info', null, true)) {
+            $output = array_merge($output, ['meta' => zoomx()->getRequestInfo()]);
+        }
+
+        return json_encode($output);
+    }
+
+    /**
+     * @return Repository
      */
     public function getHeaders()
     {

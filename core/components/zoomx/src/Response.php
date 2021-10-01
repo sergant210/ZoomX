@@ -1,7 +1,6 @@
 <?php
 namespace Zoomx;
 
-use Exception;
 use modResponse;
 use modStaticResource;
 use modX;
@@ -13,23 +12,29 @@ class Response extends modResponse
      */
     public function outputContent(array $options = array())
     {
-        $this->modx->resource = $this->modx->resource ?? $this->modx->newObject('modDocument');
-        if (!($this->contentType = $this->modx->resource->getOne('ContentType'))) {
+        $this->modx->resource = $this->modx->resource ?? $this->modx->newObject('modDocument', ['content_type' => 0]);
+        if ($this->modx->resource->content_type === 0 && $this->modx->getOption('zoomx_autodetect_content_type', null, true)) {
+            $contentType = zoomx()->getContentTypeDetector()->detect();
+            $this->contentType = $this->modx->getObject('modContentType', ['mime_type' => $contentType]);
+        }
+
+        if ($this->contentType === null && !($this->contentType = $this->modx->resource->getOne('ContentType'))) {
             if ($this->modx->getDebug() === true) {
-                $this->modx->log(modX::LOG_LEVEL_DEBUG, "No valid content type for RESOURCE: " . print_r($this->modx->resource->toArray(), true));
+                $this->modx->log(modX::LOG_LEVEL_DEBUG, "No valid content type for the resource: " . print_r($this->modx->resource->toArray(), true));
             }
             $this->modx->log(modX::LOG_LEVEL_FATAL, "The requested resource has no valid content type specified.");
         }
 
         if (!$this->contentType->get('binary')) {
-            $zoomService = zoomx();
-            if ($zoomService->getRequest()->hasRoute()) {
-                try {
-                    $this->modx->resource->_output = $zoomService->getParser()->process($this->modx->resource);
-                } catch (Exception $e) {
-                    $this->modx->log(MODX::LOG_LEVEL_ERROR, $e->getMessage());
-                    $this->modx->resource->_output = str_replace(MODX_BASE_PATH, '.../', $e->getMessage());
-                }
+            $zervice = zoomx();
+            if ($zervice->getRequest()->hasRoute()) {
+                $this->modx->resource->_output = $zervice->getParser()->process($this->modx->resource);
+            } elseif ($zervice->config('zoomx_use_zoomx_parser_as_default', false)) {
+                $this->getTemplateContent();
+                $this->modx->resource->_output = !empty($this->modx->resource->_content) ?
+                    $zervice->getParser()->parse($this->modx->resource->_content) :
+                    $this->modx->resource->getContent();
+                $this->modx->resource->setProcessed(true);
             } else {
                 $this->modx->resource->prepare();
             }
@@ -52,7 +57,7 @@ class Response extends modResponse
                 }
             }
             $this->modx->beforeRender();
-            $this->renderInfo($zoomService->getRequestInfo());
+            $this->renderInfo($zervice->getRequestInfo());
         } else {
             $this->modx->beforeRender();
         }
@@ -61,10 +66,9 @@ class Response extends modResponse
         if (empty($options['noEvent'])) {
             $this->modx->invokeEvent('OnWebPagePrerender');
         }
-
         /* send out content-type, content-disposition, and custom headers from the content type */
         if ($this->modx->getOption('set_header')) {
-            $type = $this->contentType->get('mime_type') ? $this->contentType->get('mime_type') : 'text/html';
+            $type = $this->contentType->get('mime_type') ?: 'text/html';
             $header = 'Content-Type: ' . $type;
             if (!$this->contentType->get('binary')) {
                 $charset = $this->modx->getOption('modx_charset', null, 'UTF-8');
@@ -119,11 +123,25 @@ class Response extends modResponse
             if ($this->contentType->get('binary')) {
                 $this->modx->resource->_output = $this->modx->resource->process();
             }
-            @session_write_close();
+//            @session_write_close();
             echo $this->modx->resource->_output;
             while (ob_get_level() && @ob_end_flush()) {}
             flush();
             exit();
+        }
+    }
+
+    protected function getTemplateContent()
+    {
+        $resource = $this->modx->resource;
+        if (!$resource->_processed) {
+            $resource->_output = '';
+            if (empty($resource->_content)) {
+                /** @var modTemplate $baseElement */
+                if ($resource->get('template') && $baseElement = $resource->getOne('Template')) {
+                    $resource->_content = $baseElement->getContent();
+                }
+            }
         }
     }
 

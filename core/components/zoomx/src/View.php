@@ -7,7 +7,7 @@ class View
 {
     /** @var string File name */
     public $name;
-    /** @var array  Template variables to assing */
+    /** @var array  Template variables to assign */
     public $data = [];
     /** @var string Content */
     public $content;

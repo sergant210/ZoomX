@@ -1,5 +1,5 @@
 <?php
-namespace Zoomx;
+namespace Zoomx\Support;
 
 class Repository implements \ArrayAccess
 {
@@ -80,8 +80,8 @@ class Repository implements \ArrayAccess
     {
         $keys = is_array($key) ? $key : [$key => $value];
 
-        foreach ($keys as $key => $value) {
-            $this->items[$key] = $value;
+        foreach ($keys as $k => $v) {
+            $this->items[$k] = $v;
         }
     }
     /**
@@ -95,9 +95,9 @@ class Repository implements \ArrayAccess
     {
         $keys = is_array($key) ? $key : [$key => $value];
 
-        foreach ($keys as $key => $value) {
-            if (!isset($this->items[$key])) {
-                $this->items[$key] = $value;
+        foreach ($keys as $k => $v) {
+            if (!isset($this->items[$k])) {
+                $this->items[$k] = $v;
             }
         }
     }
