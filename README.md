@@ -131,7 +131,7 @@ $router->get('api', function() {
 });
 ```
 The response will be converted to json format
-```javascript
+```js
 {
   success: true,
   data: {
@@ -146,11 +146,12 @@ The response will be converted to json format
   }
 }
 ```
+Meta information can be switched off by the system setting `zoomx_include_request_info`.
 Get a resource
 ```php
 $router->get('api/resource/{id}', function($id) use($modx) {
-$resource = $modx->getObject('modResource', ['id' => (int)$id]);
-return jsonx($resource->toArray());
+    $resource = $modx->getObject('modResource', ['id' => (int)$id]);
+    return jsonx($resource->toArray());
 });
 ```
 To return a failure response use the `abortx` function with corresponding HTTP code
@@ -172,12 +173,12 @@ By default, Smarty works only when a route for the specified URI is found. In ot
 <!doctype html>
 <html lang="{'cultureKey'|config}">
 <head>
-	{block "title"}<title>{'pagetitle'|resource} - {'site_name'|config}</title>{/block}
-	<base href="{'site_url'|config}" />
-	<meta charset="{'modx_charset'|config}" />
-	<meta http-equiv="X-UA-Compatible" content="IE=edge">
-	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-	{block "styles"}{/block}
+    {block "title"}<title>{'pagetitle'|resource} - {'site_name'|config}</title>{/block}
+    <base href="{'site_url'|config}" />
+    <meta charset="{'modx_charset'|config}" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+    {block "styles"}{/block}
 </head>
 <body>
     <div class="container">
@@ -200,10 +201,10 @@ Templates can be extended. To do this, create a basic template in the templates 
 {extends "base.tpl"}
 
 {block "content"}
-	<h1>{'longtitle'|resource:'pagetitle'}</h1>
-	<section>
-		{'content'|resource}
-	</section>
+<h1>{'longtitle'|resource:'pagetitle'}</h1>
+<section>
+	{'content'|resource}
+</section>
 {/block}
 ```
 ### Caching
