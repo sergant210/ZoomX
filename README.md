@@ -146,11 +146,12 @@ The response will be converted to json format
   }
 }
 ```
-Meta information can be switched off by the system setting `zoomx_include_request_info`.
-Get a resource
+Meta information can be switched off by the system setting `zoomx_include_request_info`.  
+  
+Get a resource either from the cache or from the database
 ```php
-$router->get('api/resource/{id}', function($id) use($modx) {
-    $resource = $modx->getObject('modResource', ['id' => (int)$id]);
+$router->get('api/resource/{id}', function($id) {
+    $resource = zoomx()->getResource[(int)$id]);
     return jsonx($resource->toArray());
 });
 ```
