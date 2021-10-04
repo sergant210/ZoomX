@@ -737,7 +737,7 @@ class ZoomXPackage
     public function getTime()
     {
         $time = microtime(true);
-        $diff = $time - $this->time - 0.2;
+        $diff = $time - $this->time - 0.2; // usleep(200)
         $this->time = $time;
 
         return number_format($diff, 4);
