@@ -310,12 +310,15 @@ class Service
     }
 
     /**
-     * @return ContentTypeDetector|null
+     * @return ContentTypeDetector
      */
     public function getContentTypeDetector()
     {
         $class = $this->modx->getOption('zoomx_content_type_detector_class', null, ContentTypeDetector::class);
-        return new $class($this->modx);
+        if (class_exists($class)) {
+            return new $class($this->modx);
+        }
+        return new ContentTypeDetector($this->modx);
     }
 
     /**

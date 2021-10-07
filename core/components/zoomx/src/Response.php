@@ -13,16 +13,15 @@ class Response extends modResponse
     public function outputContent(array $options = array())
     {
         $this->modx->resource = $this->modx->resource ?? $this->modx->newObject('modDocument', ['content_type' => 0]);
-        if ($this->modx->resource->content_type === 0 && $this->modx->getOption('zoomx_autodetect_content_type', null, true)) {
-            $contentType = zoomx()->getContentTypeDetector()->detect();
-            $this->contentType = $this->modx->getObject('modContentType', ['mime_type' => $contentType]);
+        if ($this->modx->resource->content_type === 0) {
+            $this->contentType = $this->getContentType();
         }
-
         if ($this->contentType === null && !($this->contentType = $this->modx->resource->getOne('ContentType'))) {
             if ($this->modx->getDebug() === true) {
                 $this->modx->log(modX::LOG_LEVEL_DEBUG, "No valid content type for the resource: " . print_r($this->modx->resource->toArray(), true));
             }
             $this->modx->log(modX::LOG_LEVEL_FATAL, "The requested resource has no valid content type specified.");
+            abortx(500, 'The requested resource has no valid content type specified.');
         }
 
         if (!$this->contentType->get('binary')) {
@@ -153,5 +152,31 @@ class Response extends modResponse
         $this->modx->resource->_output = str_replace("[^t^]", $info['total_time'], $this->modx->resource->_output);
         $this->modx->resource->_output = str_replace("[^s^]", $info['source'], $this->modx->resource->_output);
         $this->modx->resource->_output = str_replace("[^m^]", $info['memory'], $this->modx->resource->_output);
+    }
+
+    /**
+     * @return \modContentType|null
+     */
+    protected function getContentType()
+    {
+        $mimeType = $this->checkHeaderList();
+        if (empty($mimeType) && $this->modx->getOption('zoomx_autodetect_content_type', null, true)) {
+            $mimeType = zoomx()->getContentTypeDetector()->detect('text/html');
+        }
+
+        return $this->modx->getObject('modContentType', ['mime_type' => $mimeType]);
+    }
+
+    private function checkHeaderList()
+    {
+        $mimeType = null;
+        $headers = headers_list();
+        foreach($headers as $header) {
+            if (preg_match('~content-type:\s*(\w+/\w+)~i', $header, $match)) {
+                $mimeType = $match[1];
+                break;
+            }
+        }
+        return $mimeType;
     }
 }

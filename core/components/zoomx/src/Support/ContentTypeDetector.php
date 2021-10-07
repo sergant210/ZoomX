@@ -28,20 +28,14 @@ class ContentTypeDetector
     }
 
     /**
+     * @param string $default
      * @return string|null
      */
-    public function detect()
+    public function detect($default = null)
     {
-        $headers = headers_list();
-        foreach($headers as $header) {
-            if (preg_match('~content-type:\s*(\w+/\w+)~i', $header, $match)) {
-                $this->mimeType = $match[1];
-                break;
-            }
-        }
         if (empty($this->mimeType)) {
             $ext = pathinfo($_SERVER['REQUEST_URI'], PATHINFO_EXTENSION);
-            $this->mimeType = $this->mimeTypes[$ext];
+            $this->mimeType = $this->mimeTypes[$ext] ?? (string)$default;
         }
 
         return $this->mimeType;
