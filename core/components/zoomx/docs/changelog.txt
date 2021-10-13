@@ -1,5 +1,10 @@
 Changelog for ZoomX.
 
+3.0.2-beta
+==============
+- Refactored the automatic content type detection.
+- Fixed the parse block for Smarty.
+
 3.0.1-beta
 ==============
 - Added missing pdoTools adapter files.

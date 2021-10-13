@@ -15,8 +15,11 @@ function smarty_block_parse($params, $content, Smarty_Internal_Template $templat
 
     // only output on the closing tag
     if(!$repeat) {
-        $parserClass = $params['parser'] ?? $modx->getOption('zoomx_parser_class', null, \Zoomx\Smarty::class, true);
-        $parser = new $parserClass($modx);
+        if ($parserClass = @$params['parser']) {
+            $parser = new $parserClass($modx, zoomx());
+        } else {
+            $parser = parserx();
+        }
 
         if ($parser instanceof modParser) {
             $maxIterations = $params['iteration'] ?? $modx->getOption('parser_max_iterations', null, 10);
