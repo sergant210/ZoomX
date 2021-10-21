@@ -52,7 +52,7 @@ class Smarty extends BaseSmarty implements Contracts\ParserInterface
         $this->addPluginsDir($pluginsDir);
 
         // Enable security
-        if ($modx->getOption('zoomx_smarty_security_enable', null, false)) {
+        if ($modx->getOption('zoomx_enable_smarty_security', null, false)) {
             $securityClass = $this->getSecurityClass($corePath);
             empty($securityClass) or $this->enableSecurity($securityClass);
         }
@@ -66,8 +66,10 @@ class Smarty extends BaseSmarty implements Contracts\ParserInterface
         // Get available $modx object in the templates
         if ($modx->getOption('zoomx_include_modx', null, true)) {
             $this->assign('modx', $modx, true);
-            $this->assign('zoomx', $zoomService, true);
         }
+
+        // Register default modifier handler for snippet.
+        $this->registerDefaultPluginHandler([$this, 'loadDefaultPluginHandler']);
     }
 
     protected function getSecurityClass($corePath)
@@ -146,6 +148,7 @@ class Smarty extends BaseSmarty implements Contracts\ParserInterface
     }
 
     /**
+     * Parse the MODX template of the current resource.
      * @param modResource $resource
      * @return string
      * @throws \SmartyException
@@ -246,6 +249,51 @@ class Smarty extends BaseSmarty implements Contracts\ParserInterface
         return $this;
     }
 
+    /**
+     * Default Plugin Handler
+     *
+     * Called when Smarty encounters an undefined tag during compilation
+     *
+     * @param string                     $name      name of the undefined tag
+     * @param string                     $type     tag type (e.g. Smarty::PLUGIN_FUNCTION, Smarty::PLUGIN_BLOCK,
+    Smarty::PLUGIN_COMPILER, Smarty::PLUGIN_MODIFIER, Smarty::PLUGIN_MODIFIERCOMPILER)
+     * @param \Smarty_Internal_Template  $template     template object
+     * @param string|array               &$callback    returned function name
+     * @param string                     &$script      optional returned script filepath if function is external
+     * @param bool                       &$cacheable    true by default, set to false if plugin is not cachable (Smarty >= 3.1.8)
+     * @return bool                      true if successful
+     */
+    public function loadDefaultPluginHandler($name, $type, $template, &$callback, &$script, &$cacheable)
+    {
+        if ($type === BaseSmarty::PLUGIN_MODIFIER) {
+            $callback = [__CLASS__, 'run_' . $name];
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Dynamically handle calls to the class.
+     *
+     * @param  string $method
+     * @param  array  $params
+     * @return mixed
+     */
+    public static function __callStatic($method, $params)
+    {
+        [$input, $options] = $params;
+
+        if (strpos($method, 'run_') !== 0) {
+            return $input;
+        }
+        $snippetName = preg_replace('|^run_|', '', $method);
+        $result = zoomx()->runSnippet($snippetName, [
+            'input' => $input,
+            'options' => $options,
+        ]);
+
+        return $result === false ? $input : $result;
+    }
 
     /**
      * Display a template by echoing the output of a Smarty::fetch().

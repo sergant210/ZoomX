@@ -245,6 +245,14 @@ Arguments:
 {'assets/css/styles.css'|css}
 {'assets/css/styles.css'|css:all}
 ```
+* declension - declension of words for the specified number.
+Arguments:  
+\- words - array of options;
+\- include - include the number.
+```php
+{10|declension:['apple', 'apples']}  // apples  
+{10|declension:['apple', 'apples']:true}  // 10 apples  
+```
 * html,
 * htmltobottom - register a html block to the end of the page.
 ```php
@@ -257,7 +265,7 @@ Arguments:
 * js, 
 * jstobottom - register js to the end of the page.
 Arguments:  
-\- plaintext - `true`/`false`;  
+\- plaintext - `true`/`false`.  
 ```php
 {'assets/js/scripts.js'|jstobottom}
 // Equivalent to
@@ -266,7 +274,7 @@ Arguments:
 ```
 * jstohead - register js to the head of the page.
 Arguments:  
-\- plaintext - `true`/`false`;  
+\- plaintext - `true`/`false`.  
 ```php
 {'assets/js/scripts.js'|jstohead}
 {'<script>let foo = "bar";</script>'|jstohead:true}

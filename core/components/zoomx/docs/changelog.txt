@@ -1,5 +1,11 @@
 Changelog for ZoomX.
 
+3.1.0-beta
+==============
+- Added modifier declension.
+- Added the ability to use snippets as modifiers.
+- Added the "source" parameter to the request info.
+
 3.0.2-beta
 ==============
 - Refactored the automatic content type detection.

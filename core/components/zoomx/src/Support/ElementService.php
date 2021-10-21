@@ -40,7 +40,7 @@ class ElementService
     {
         $name = trim($name);
         if (empty($name)) {
-            return '';
+            return false;
         }
         $isFile = false;
         if (strpos($name, '@INLINE') === 0 || preg_match('~(</\w+>|{[$/]?\w+})~', $name)) {
@@ -57,11 +57,6 @@ class ElementService
         } elseif (strpos($name, '@FILE') === 0 ) {
             $name = ltrim($this->sanitizePath(preg_replace('#^@FILE:?\s+#', '', $name)), '/\\');
             $isFile = true;
-            /*$file = $this->getTemplateDir() . $name;
-            if (file_exists($file)) {
-                $isFile = true;
-            }*/
-
         } else {
             $propertySet = '';
             if (strpos($name, '@') !== false) {
@@ -71,8 +66,10 @@ class ElementService
                 /** @var \modChunk $chunk */
                 $chunk = $this->getElement('modChunk', $name);
                 if (is_null($chunk)) {
-                    $this->modx->log(xPDO::LOG_LEVEL_ERROR, $this->modx->lexicon('zoomx_chunk_not_found', ['name' => $name]));
-                    return '';
+                    if (getenv("APP_ENV") !== "test") {
+                        $this->modx->log(xPDO::LOG_LEVEL_ERROR, $this->modx->lexicon('zoomx_chunk_not_found', ['name' => $name]));
+                    }
+                    return false;
                 }
                 if ($chunk->id > 0 && !empty($propertySet)) {
                     $chunk->set('name', $propertySet ? "{$name}@{$propertySet}" : $name);
@@ -86,7 +83,7 @@ class ElementService
             try {
                 $output = parserx()->parse($name, $properties, $isFile);
             } catch (SmartyException $e) {
-                $this->modx->log(xPDO::LOG_LEVEL_ERROR, '[ZoomX\ElementService] ' . $e->getMessage());
+                $this->modx->log(xPDO::LOG_LEVEL_ERROR, $this->modx->lexicon('zoomx_chunk_not_found', ['name' => $name]));
             }
         } else {
             $this->chunkRepository->add($name, $chunk);
@@ -100,29 +97,30 @@ class ElementService
      * Replacement for modX::snippet() method.
      * @param string $name
      * @param array $properties
-     * @return mixed
+     * @return mixed|bool
      */
     public function runSnippet(string $name, array $properties = [])
     {
         $name = trim($name);
         if (empty($name)) {
-            return '';
+            if (getenv("APP_ENV") !== "test") {
+                $this->modx->log(modX::LOG_LEVEL_ERROR, $this->modx->lexicon('zoomx_snippet_not_found', ['name' => $name]));
+            }
+            return false;
         }
 
         $propertySet = '';
         if (strpos($name, '@') !== false) {
-            list($name, $propertySet) = explode('@', $name, 2);
+            [$name, $propertySet] = explode('@', $name, 2);
         }
         if (!$snippet = $this->snippetRepository->get($name)) {
             /** @var \modSnippet $snippet */
             $snippet = $this->getElement('modSnippet', $name);
             if (is_null($snippet)) {
-                abortx(500, $this->modx->lexicon('zoomx_snippet_not_found', ['name' => $name]));
-                $snippet = $this->modx->newObject('modSnippet', [
-                    'id' => 0,
-                    'name' => $name,
-                    'snippet' => 'return;',
-                ]);
+                if (getenv("APP_ENV") !== "test") {
+                    $this->modx->log(modX::LOG_LEVEL_ERROR, $this->modx->lexicon('zoomx_snippet_not_found', ['name' => $name]));
+                }
+             return false;
             }
             if ($snippet->id && !empty($propertySet)) {
                 $snippet->set('name', "$name@$propertySet");
@@ -150,9 +148,10 @@ class ElementService
         $file = $snippetPath . $this->sanitizePath($name);
         $file = pathinfo($file, PATHINFO_EXTENSION) === 'php' ? $file : "$file.php";
         if (!file_exists($file)) {
-            abortx(500, $this->modx->lexicon('zoomx_snippet_file_not_found', ['name' => $name]));
-            //$this->modx->log(xPDO::LOG_LEVEL_ERROR, $this->modx->lexicon('zoomx_snippet_file_not_found', ['name' => $name]));
-            return '';
+            if (getenv("APP_ENV") !== "test") {
+                $this->modx->log(xPDO::LOG_LEVEL_ERROR, $this->modx->lexicon('zoomx_snippet_file_not_found', ['name' => $name]));
+            }
+            return false;
         }
 
         return call_user_func(
@@ -181,7 +180,7 @@ class ElementService
      */
     public function getElement(string $class, string $name)
     {
-        if (array_key_exists($class, $this->modx->sourceCache) && array_key_exists($name, $this->modx->sourceCache[$class])) {
+        if (isset($this->modx->sourceCache[$class][$name])) {
             /** @var modElement $element */
             $element = $this->modx->newObject($class);
             $element->fromArray($this->modx->sourceCache[$class][$name]['fields'], '', true, true);
@@ -198,7 +197,7 @@ class ElementService
         } else {
             /** @var modElement $element */
             $element = $this->modx->getObjectGraph($class, ['Source' => []], ['name' => $name], true);
-            if ($element && array_key_exists($class, $this->modx->sourceCache)) {
+            if ($element && isset($this->modx->sourceCache[$class])) {
                 $this->modx->sourceCache[$class][$name] = [
                     'fields' => $element->toArray(),
                     'policies' => $element->getPolicies(),

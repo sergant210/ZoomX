@@ -43,6 +43,7 @@ class Service
     private function __construct(modX $modx)
     {
         $this->modx = $modx;
+        $modx->zoomService = $this;
 
         class_alias(View::class, 'ZoomView');
         $modx->lexicon->load('zoomx:default');
@@ -60,6 +61,7 @@ class Service
         if ($modx->getOption('zoomx_enable_pdotools_adapter', null, false)) {
             $this->preparePdoToolsAdapter();
         }
+        // Fire the event.
         $modx->invokeEvent('onZoomxInit');
     }
 
@@ -260,7 +262,6 @@ class Service
     }
 
     /**
-     * Determine if the given content should be turned into JSON.
      * @return bool
      */
     public function shouldBeJson()
@@ -270,7 +271,6 @@ class Service
     }
 
     /**
-     * Checks for the presence of the HTTP header HTTP_X_REQUESTED_WITH.
      * @return bool
      */
     public function isAjax()
@@ -293,36 +293,31 @@ class Service
     {
         $totalTime = (microtime(true) - $this->modx->startTime);
         $queryTime = $this->modx->queryTime;
-        $queries = $this->modx->executedQueries ?? 0;
         $phpTime = $totalTime - $queryTime;
         $queryTime = number_format($queryTime, 4) . ' s';
         $totalTime = number_format($totalTime, 4) . ' s';
         $phpTime = number_format($phpTime, 4) . ' s';
-        $memory = number_format(memory_get_usage(true) / 1024, 0, ",", " ") . ' kb';
 
-    return  [
+        return  [
             'total_time' => $totalTime,
             'query_time' => $queryTime,
             'php_time' => $phpTime,
-            'queries' => $queries,
-            'memory' => $memory,
+            'queries' => $this->modx->executedQueries ?? 0,
+            'source' => $this->modx->resourceGenerated ? "database" : "cache",
+            'memory' => number_format(memory_get_usage(true) / 1024, 0, ",", " ") . ' KB',
         ];
     }
 
     /**
-     * @return ContentTypeDetector
+     * @return ContentTypeDetector|null
      */
     public function getContentTypeDetector()
     {
         $class = $this->modx->getOption('zoomx_content_type_detector_class', null, ContentTypeDetector::class);
-        if (class_exists($class)) {
-            return new $class($this->modx);
-        }
-        return new ContentTypeDetector($this->modx);
+        return new $class($this->modx);
     }
 
     /**
-     * Resource auto-loading switch
      * @param bool $value
      * @return $this
      */
@@ -334,7 +329,6 @@ class Service
     }
 
     /**
-     * Gets a requested resource and all required data.
      * @param string|int $identifier
      * @param array $options
      * @return \modResource|null
@@ -435,7 +429,7 @@ class Service
     }
 
     /**
-     * Replacement for the modX::getChunk() method.
+     * Replacement for modX::getChunk() method.
      * @param string $name
      * @param array $properties
      * @return string
