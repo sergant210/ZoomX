@@ -23,6 +23,7 @@ It's required PHP >= 7.1.
   * [File elements](./README.md#file-elements)
     * [File chunks](./README.md#file-chunks)
     * [File snippets](./README.md#file-snippets)
+* [Service class](./README.md#service-class)
 * [Helpers](./README.md#helpers)
 * [System settings](./README.md#system-settings)
   * [Main area](./README.md#main-area) 
