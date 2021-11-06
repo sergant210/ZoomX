@@ -445,7 +445,7 @@ You can get a service class using the `zoomx` function. It contains a number of 
 - `getResource` - gets a requested resource and all required data. Pass resource alias or id as an argument.
 - `config` - replacement for the `modX::getOption()` method.
 - `getChunk` - replacement for the `modX::getChunk()` method. It allows you to use the @FILE and @INLINE bindings in the name of the chunk.
-- `getSnippet` - replacement for the `modX::snippet()` method.
+- `runSnippet` - replacement for the `modX::runSnippet()` method.
 - `runFileSnippet` - executes a file like a snippet.
 
 ## Helpers
