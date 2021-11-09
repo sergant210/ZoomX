@@ -103,12 +103,14 @@ class Response extends modResponse
                             $name .= "{$ext}";
                         }
                     }
-                    $header = 'Cache-Control: public';
-                    header($header);
-                    $header = 'Content-Disposition: attachment; filename=' . $name;
-                    header($header);
-                    $header = 'Vary: User-Agent';
-                    header($header);
+                    $headers = [
+                        'Cache-Control: public',
+                        'Content-Disposition: attachment; filename=' . $name,
+                        'Vary: User-Agent',
+                    ];
+                    foreach ($headers as $header) {
+                        header($header);
+                    }
                 }
             }
         }

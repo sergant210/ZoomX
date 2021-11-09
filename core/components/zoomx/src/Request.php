@@ -80,11 +80,12 @@ class Request extends modRequest
         $this->modx->beforeRequest();
         $this->modx->invokeEvent("OnWebPageInit");
 
-        if (!$this->isApiMode() &&
-            !is_object($this->modx->resource) &&
-            $this->autoloadResource())
-        {
-            if (!$this->modx->resource = $this->getResource('', $this->modx->resourceIdentifier)) {
+        // If the resource should not be loaded.
+        if ($this->hasRoute() && !$this->modx->getOption('zoomx_autoload_resource', null, true)) {
+            $this->modx->resource = $this->modx->newObject('modDocument', ['content_type' => 0]);
+        } elseif (!$this->isApiMode() && !is_object($this->modx->resource)) {
+            $this->modx->resource = $this->getResource('', $this->modx->resourceIdentifier);
+            if ($this->modx->resource === null) {
                 abortx(404);
             }
         }
@@ -173,7 +174,7 @@ class Request extends modRequest
      */
     public function hasRoute($value = null)
     {
-        if ($value === null || !is_bool($value)) {
+        if (!is_bool($value)) {
             return $this->hasRoute;
         }
         $this->hasRoute = $value;
@@ -193,11 +194,5 @@ class Request extends modRequest
     {
         return  ($this->modx->response && $this->modx->response instanceof Json\ResponseInterface) ||
                 (defined('ZOOMX_API_MODE') && ZOOMX_API_MODE === true);
-    }
-
-    private function autoloadResource()
-    {
-        return !$this->hasRoute() ||
-                $this->modx->getOption('zoomx_autoload_resource', null, true);
     }
 }

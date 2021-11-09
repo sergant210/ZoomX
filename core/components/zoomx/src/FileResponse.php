@@ -20,6 +20,8 @@ class FileResponse extends modResponse
     /** @var string File name for downloading */
     protected $fileName;
 
+    private $mustBeParsed = false;
+
 
     public function __construct(modX $modx, $file, $isAttachment = false, $deleteFileAfterSend = false) {
         parent::__construct($modx);
@@ -118,6 +120,11 @@ class FileResponse extends modResponse
         return $this;
     }
 
+    /**
+     * Set the file name.
+     * @param string $name
+     * @return $this
+     */
     public function setFileName(string $name)
     {
         if (!empty($name)) {
@@ -127,11 +134,20 @@ class FileResponse extends modResponse
         return $this;
     }
 
+    /**
+     * Get the name of the file.
+     * @return string
+     */
     public function getFileName()
     {
         return $this->fileName;
     }
 
+    /**
+     * Rename the downloaded file.
+     * @param string $name
+     * @return $this
+     */
     public function downloadAs(string $name)
     {
         $this->isAttachment = true;
@@ -152,10 +168,11 @@ class FileResponse extends modResponse
         if (!$this->file->isReadable()) {
             throw new FileException('File must be readable.');
         }
+        $filesize = filesize($this->file->getPathname());
 
         $headers = array_change_key_case($this->headers->all());
         if (!isset($headers['content-type'])) {
-            $mimeType = mime_content_type($this->file->getPathname());
+            $mimeType = $this->getFileMimeType();
             if ($mimeType === false) {
                 throw new FileException('Content-Type is not set.');
             }
@@ -165,16 +182,24 @@ class FileResponse extends modResponse
             $this->headers->add('Content-Disposition', 'attachment; filename=' . $this->fileName ?? $this->file->getFilename());
         }
 
+        $out = fopen('php://output', 'wb');
+        $file = fopen($this->file->getPathname(), 'rb');
+
+        if ($this->mustBeParsed) {
+            $content = fread($file, $filesize);
+            $content = parserx()->parse($content);
+            $filesize = strlen($content);
+        }
+
+        if (!isset($headers['content-length'])) {
+            $this->headers->add("Content-Length: " . $filesize);
+        }
         $this->sendHeaders();
 
         if (function_exists('fastcgi_finish_request')) {
             fastcgi_finish_request();
         }
-
-        $out = fopen('php://output', 'wb');
-        $file = fopen($this->file->getPathname(), 'rb');
-
-        stream_copy_to_stream($file, $out);
+        $this->mustBeParsed ? fwrite($out, $content) : stream_copy_to_stream($file, $out);
 
         fclose($out);
         fclose($file);
@@ -189,6 +214,19 @@ class FileResponse extends modResponse
     public function withHeaders(array $headers)
     {
         $this->headers->add($headers);
+        return $this;
+    }
+
+    public function parse($value = true)
+    {
+        $this->mustBeParsed = true;
+        return $this;
+    }
+
+    private function getFileMimeType()
+    {
+        $mimeType = (string)zoomx()->getContentTypeDetector()->detect();
+        return $mimeType ?: mime_content_type($this->file->getPathname());
     }
     /**
      * Get a property.

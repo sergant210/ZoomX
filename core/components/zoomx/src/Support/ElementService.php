@@ -94,7 +94,7 @@ class ElementService
     }
 
     /**
-     * Replacement for modX::snippet() method.
+     * Replacement for modX::runSnippet() method.
      * @param string $name
      * @param array $properties
      * @return mixed|bool
@@ -127,7 +127,7 @@ class ElementService
             }
         }
         $this->snippetRepository->add($name, $snippet);
-        //TODO: сделать отдельный механизм без парсера MODX.
+        //TODO: exclude the MODX parser.
         $snippet->_cacheable = false;
         $snippet->_processed = false;
         $snippet->_propertyString = '';

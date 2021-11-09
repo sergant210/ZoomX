@@ -52,7 +52,7 @@ class Smarty extends BaseSmarty implements Contracts\ParserInterface
         $this->addPluginsDir($pluginsDir);
 
         // Enable security
-        if ($modx->getOption('zoomx_enable_smarty_security', null, false)) {
+        if ($modx->getOption('zoomx_smarty_security_enable', null, false)) {
             $securityClass = $this->getSecurityClass($corePath);
             empty($securityClass) or $this->enableSecurity($securityClass);
         }
@@ -66,6 +66,7 @@ class Smarty extends BaseSmarty implements Contracts\ParserInterface
         // Get available $modx object in the templates
         if ($modx->getOption('zoomx_include_modx', null, true)) {
             $this->assign('modx', $modx, true);
+            $this->assign('zoomx', $zoomService, true);
         }
 
         // Register default modifier handler for snippet.

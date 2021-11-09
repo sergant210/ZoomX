@@ -246,6 +246,12 @@ Arguments:
 {'assets/css/styles.css'|css}
 {'assets/css/styles.css'|css:all}
 ```
+* dateAgo - display the date as "5 minutes ago", "7 hours ago",  "2 days ago". If the date is later than a week, it is displayed according to the specified format.
+  Arguments:  
+  \- format - date format. By-default "d F Y, H:i";
+```php
+{'publishedon'|resource|dateAgo}  
+```
 * declension - declension of words for the specified number.
 Arguments:  
 \- words - array of options;
@@ -253,6 +259,12 @@ Arguments:
 ```php
 {10|declension:['apple', 'apples']}  // apples  
 {10|declension:['apple', 'apples']:true}  // 10 apples  
+```
+* fuzzyDate - display fuzzy date (yesterday at 11:15, today at 06:00, tomorrow at 15:30). If the date is later than a week, it is displayed according to the specified format.
+  Arguments:  
+  \- format - date format. By-default "d F Y, H:i";
+```php
+{'publishedon'|resource|fuzzyDate:'Y-m-d'}  
 ```
 * html,
 * htmltobottom - register a html block to the end of the page.

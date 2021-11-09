@@ -50,7 +50,7 @@ class Service
         $this->loadExceptions();
 
         // Set exception handler
-        if ($modx->getOption('zoomx_enable_exception_handler', null, true)) {
+        if ($modx->context->key !== 'mgr' && $modx->getOption('zoomx_enable_exception_handler', null, true)) {
             $exceptionHandler = $this->getExceptionHandler();
             set_exception_handler([$exceptionHandler, 'handle']);
         }
