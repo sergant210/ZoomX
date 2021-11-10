@@ -461,16 +461,17 @@ You can get a service class using the `zoomx` function. It contains a number of 
 - `runFileSnippet` - executes a file like a snippet.
 
 ## Helpers
-- abortx() - throws an HttpException with the given data.
-- Arguments:  
+- abortx() - throws an HttpException with the given data.  
+  Arguments:  
   \- `(int)` code - HTTP code.
   \- `(string)` message - error message.
   \- `(string)` title - page title.
   \- `(array)` headers - headers.
 ```php
-$router->get('profile', function() {
-    if ($) {
-        abortx('404', 'Item not found!');
+$router->get('items/{$id}', function($id) use($modx) {
+    $item = $modx->getObject('itemClass', ['id' => (int)$id]);
+    if ($item === null) {
+        abortx(404, 'Item not found!');
     }
     return jsonx($item->toArray(), ['X-Some-Header' => 'Some value']);
 });
@@ -489,8 +490,8 @@ For codes 400, 406, 415, 500 and 503 the OnRequestError event is added. This eve
 
 You can create your own codes. To do this you have to specify the config of the custom exceptions in the file `core/config/exceptions.php`.
 
-- redirectx() - returns a redirect response. Can be used insteadof `$modx->sendRedirect($url)`;
-- Arguments:  
+- redirectx() - returns a redirect response. Can be used insteadof `$modx->sendRedirect($url)`;  
+  Arguments:  
   \- `(string)` url - new URL to redirect.
   \- `(int)` status - HTTP code. Available values - 201, 301, 302, 303, 307, 308. By default, 302.
   \- `(array)` headers - headers.
@@ -498,24 +499,26 @@ You can create your own codes. To do this you have to specify the config of the 
 $router->get('some-url', function() {
     return redirectx('new-url', 301);
 });
-- jsonx() - returns a JSON response.
-- Arguments:  
+```
+
+- jsonx() - returns a JSON response.  
+  Arguments:  
   \- `(array)` data - array to return to the user.
   \- `(array)` headers - headers.
 ```php
 $router->get('items/{id}', function($id) {
     if (!$item = zoomx('modx')->getObject('Item', ['id' => (int)$id])) {
-        abortx('404', 'Item not found!');
+        abortx(404, 'Item not found!');
     }
     return jsonx($item->toArray(), ['X-Some-Header' => 'Some value']);
 });
 ```
-- parserx() - returns an object of the specified parser.
+- parserx() - returns an object of the specified parser.  
 ```php
 parserx();  // === zoomx('parser') === zoomx()->getParser();
 ```
-- viewx() - get a view object for the given template.
-- Arguments:  
+- viewx() - get a view object for the given template.  
+  Arguments:  
   \- `(string)` tpl - template name.
   \- `(array)` data - template variables.
 ```php
@@ -523,7 +526,7 @@ $router->get('articles/{alias}', function($alias) {
     return viewx('article.tpl', ['foo' => 'bar']);
 });
 ```
-- zoomx() - returns an instance of the ZoomX service class.
+- zoomx() - returns an instance of the ZoomX service class.  
   Arguments:  
   \- `(string)` property - property name. A simplified version of the call via the corresponding get'Property' method. Available properties - `modx`, `parser`, `request`, `response`, `elementService`.
 ```php
@@ -534,8 +537,8 @@ $content = zoomx()->getChunk('modx.chunk', $params);
 zoomx()->runSnippet('modx.snippet', $params);
 ```
 
-- filex() - returns a specified file. Can be used for managing of the files.
-- Arguments:  
+- filex() - returns a specified file. Can be used for managing of the files.  
+  Arguments:  
   \- `(string)` path - absolute path to file.
   \- `(bool)` isAttachment - to return as an attachment.
   \- `(bool)` deleteFileAfterSend - to delete after response.
@@ -545,11 +548,11 @@ $router->get('files/{file}',  function ($file) use ($modx) {
     if (!$modx->user->isMember('Subscribers)) {
         abortx(403, 'Only members of the "Subscribers" group can download files.');
     }
-    zoomx()->autoloadResource(false);  // Don't search the resources with the URI 'files/modx.pdf'.
+    zoomx()->autoloadResource(false);  // Don't search the resources with the specified URI.
     // Don't forget to sanitize the file name $file 
     return filex(MODX_CORE_PATH . "path/to/subscribers/files/$file", true);
 });
-$router->get('file.tpl',  function () {
+$router->get('file.pdf',  function () {
     zoomx()->autoloadResource(false);
     // Download with new name.
     return filex(MODX_CORE_PATH . "path/to/file.pdf", true)->downloadAs('newFileName.pdf');

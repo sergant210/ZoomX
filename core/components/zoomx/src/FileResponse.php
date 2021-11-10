@@ -172,7 +172,7 @@ class FileResponse extends modResponse
 
         $headers = array_change_key_case($this->headers->all());
         if (!isset($headers['content-type'])) {
-            $mimeType = $this->getFileMimeType();
+            $mimeType = $this->getFileMimeType() ?? 'text/html';
             if ($mimeType === false) {
                 throw new FileException('Content-Type is not set.');
             }
@@ -217,16 +217,23 @@ class FileResponse extends modResponse
         return $this;
     }
 
-    public function parse($value = true)
+    public function parse(array $params = [])
     {
         $this->mustBeParsed = true;
+        if (!empty($params)) {
+            parserx()->assign($params);
+        }
         return $this;
     }
 
     private function getFileMimeType()
     {
-        $mimeType = (string)zoomx()->getContentTypeDetector()->detect();
-        return $mimeType ?: mime_content_type($this->file->getPathname());
+        $mimeType = null;
+        if ($this->modx->getOption('zoomx_autodetect_content_type', null, true)) {
+            $mimeType = (string)zoomx()->getContentTypeDetector()->detect();
+            $mimeType = $mimeType ?? mime_content_type($this->file->getPathname());
+        }
+        return $mimeType;
     }
     /**
      * Get a property.
