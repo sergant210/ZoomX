@@ -71,6 +71,11 @@ return [
         'value' => false,
         'area' => 'zoomx_main',
     ],
+    'zoomx_cache_routes' => [
+        'xtype' => 'combo-boolean',
+        'value' => false,
+        'area' => 'zoomx_main',
+    ],
     /* Smarty */
     'zoomx_smarty_cache_dir' => [
         'xtype' => 'textfield',

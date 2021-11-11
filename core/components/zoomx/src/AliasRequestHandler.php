@@ -11,12 +11,15 @@ use Zoomx\DTO\Error as ErrorData;
 use Zoomx\Exceptions\HttpException;
 use Zoomx\Exceptions\NotFoundHttpException;
 
-use function FastRoute\simpleDispatcher;
+use function FastRoute\cachedDispatcher;
 
 class AliasRequestHandler extends RequestHandler
 {
     /** @var Dispatcher */
     protected $dispatcher;
+
+    protected $routeCacheFile = 'route.cache.php';
+    protected $routeMapFile = 'route.map.php';
 
 
     /**
@@ -29,6 +32,7 @@ class AliasRequestHandler extends RequestHandler
 
     /**
      * @return int|string|null
+     * @throws \ReflectionException
      */
     public function getResourceIdentifier()
     {
@@ -50,6 +54,7 @@ class AliasRequestHandler extends RequestHandler
 
     /**
      * @param string $uri
+     * @throws \ReflectionException
      */
     public function processRouting($uri)
     {
@@ -104,6 +109,7 @@ class AliasRequestHandler extends RequestHandler
     /**
      * Handle the result.
      * @param mixed $output
+     * @throws \ReflectionException
      */
     protected function handleOutput($output)
     {
@@ -115,7 +121,6 @@ class AliasRequestHandler extends RequestHandler
             if ($output !== null) {
                 $content = (string)$output;
                 parserx()->setTpl(viewx(md5($content))->setContent($content));
-                //$this->modx->resource = $this->getResource((int)$this->modx->getOption('site_start', null, 1));
             }
         } else {
             // $output instanceof View
@@ -128,7 +133,7 @@ class AliasRequestHandler extends RequestHandler
     /**
      * Gets a requested resource and all required data.
      *
-     * @param string|integer $identifier The identifier with which to search.
+     * @param string|int $identifier The identifier with which to search.
      * @param array $options An array of options for the resource fetching
      * @return modResource|null The requested modResource instance or request is forwarded to the error page, or unauthorized page.
      */
@@ -190,24 +195,26 @@ class AliasRequestHandler extends RequestHandler
         if (!$this->dispatcher) {
             $modx = $this->modx;
             $requestHandler = $this;
-            $this->dispatcher = simpleDispatcher(
+            if ($modx->getOption('zoomx_cache_routes', null, false)) {
+                $this->validateCache();
+            }
+            $this->dispatcher = cachedDispatcher(
                 static function (RouteCollector $router) use ($modx, $requestHandler) {
                     include_once MODX_CORE_PATH . MODX_CONFIG_KEY . '/routes.php';
-                }
+                },
+                [
+                    'cacheFile' => $this->getCachePath() . $this->routeCacheFile,
+                    'cacheDisabled' => !$modx->getOption('zoomx_cache_routes', null, false),
+                ]
             );
         }
 
         return $this->dispatcher;
     }
 
-    protected function getCacheRoutesPath()
+    protected function getCachePath()
     {
-        $path = $this->modx->getCachePath() . 'zoomx/routes';
-        if (!is_dir($path)) {
-            $this->modx->getCacheManager();
-            $this->modx->cacheManager->writeTree($path);
-        }
-        return $path;
+        return $this->modx->getCachePath() . 'zoomx/';
     }
 
     protected function clearRequestParam()
@@ -219,10 +226,11 @@ class AliasRequestHandler extends RequestHandler
     /**
      * Get a Resource URI in this Context by id.
      *
-     * @param integer $id The integer id of the Resource.
+     * @param int $id The integer id of the Resource.
      * @return string The URI of the Resource.
      */
-    protected function getResourceUri($id) {
+    protected function getResourceUri($id)
+    {
         $uri = '';
 
         if ($this->modx->getOption('cache_alias_map') && isset($this->aliasMap)) {
@@ -242,7 +250,7 @@ class AliasRequestHandler extends RequestHandler
     {
         if ($error === null) {
             $class = zoomx()->getExceptionClass(404, NotFoundHttpException::class);
-            $exception = new $class;
+            $exception = new $class();
             $error = new ErrorData($exception->toArray());
             $error->object = $exception;
         } elseif (is_array($error)) {
@@ -253,12 +261,12 @@ class AliasRequestHandler extends RequestHandler
             $this->invokeEvent($error);
             $tpl = $this->getErrorTpl($error->code, $this->modx->getOption('zoomx_default_tpl', null, 'error.tpl'));
             switch (true) {
-            	case $error->object instanceof Error:
+                case $error->object instanceof Error:
                     $type = 'error';
-            		break;
+                    break;
                 case $error->object instanceof HttpException:
                     $type = 'http-exception';
-            		break;
+                    break;
                 default:
                     $type = 'exception';
             }
@@ -289,7 +297,7 @@ class AliasRequestHandler extends RequestHandler
         if (!XPDO_CLI_MODE) {
             $headers = $error->object instanceof HttpException ? $error->object->getHeaders() : [500 => $_SERVER['SERVER_PROTOCOL'] . ' 500 Internal Server Error'];
             foreach ($headers as $header => $value) {
-                $header = is_int($header) ? $value : "{$header}: {$value}";
+                $header = is_int($header) ? $value : "$header: $value";
                 header($header);
             }
             echo parserx()->process();
@@ -327,5 +335,21 @@ class AliasRequestHandler extends RequestHandler
         $tpl = $code . (!empty($ext) ? ".$ext" : '');
 
         return parserx()->templateExists($tpl) ? $tpl : $default;
+    }
+
+    private function validateCache()
+    {
+
+        $routesHash = md5_file(MODX_CORE_PATH . MODX_CONFIG_KEY . '/routes.php');
+        if (file_exists($map = $this->getCachePath() . $this->routeMapFile)) {
+            $cachedHash = include $map;
+            if ($cachedHash !== $routesHash) {
+                unlink($this->getCachePath() . $this->routeCacheFile);
+            }
+        }
+
+        if (null === $cachedHash || $cachedHash !== $routesHash) {
+            file_put_contents($map, "<?php return '$routesHash';");
+        }
     }
 }

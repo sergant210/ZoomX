@@ -52,3 +52,5 @@ $_lang['setting_zoomx_smarty_security_enable'] = 'Enable Smarty security mode';
 $_lang['setting_zoomx_smarty_security_enable_desc'] = 'Enables the mode for managing Smarty security, which is defined in the security class.';
 $_lang['setting_zoomx_smarty_security_class'] = 'Security class';
 $_lang['setting_zoomx_smarty_security_class_desc'] = 'The class in which the security settings are defined.';
+$_lang['setting_zoomx_cache_routes'] = 'Cache routes';
+$_lang['setting_zoomx_cache_routes_desc'] = 'Enables route caching.';

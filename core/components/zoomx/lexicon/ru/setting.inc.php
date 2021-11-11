@@ -52,3 +52,5 @@ $_lang['setting_zoomx_smarty_security_enable'] = 'Включить режим б
 $_lang['setting_zoomx_smarty_security_enable_desc'] = 'Включает режим для управления безопасностью Smarty, которая определяется в классе безопасности.';
 $_lang['setting_zoomx_smarty_security_class'] = 'Класс безопасности';
 $_lang['setting_zoomx_smarty_security_class_desc'] = 'Класс, в котором определяются настройки безопасности.';
+$_lang['setting_zoomx_cache_routes'] = 'Кэшировать роуты';
+$_lang['setting_zoomx_cache_routes_desc'] = 'Включает кэширование роутов.';
