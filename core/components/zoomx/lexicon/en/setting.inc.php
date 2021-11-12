@@ -53,4 +53,4 @@ $_lang['setting_zoomx_smarty_security_enable_desc'] = 'Enables the mode for mana
 $_lang['setting_zoomx_smarty_security_class'] = 'Security class';
 $_lang['setting_zoomx_smarty_security_class_desc'] = 'The class in which the security settings are defined.';
 $_lang['setting_zoomx_cache_routes'] = 'Cache routes';
-$_lang['setting_zoomx_cache_routes_desc'] = 'Enables route caching.';
+$_lang['setting_zoomx_cache_routes_desc'] = 'Enables route caching. Caution! Turn it on only if controllers are used in routes.';

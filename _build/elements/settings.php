@@ -76,6 +76,11 @@ return [
         'value' => false,
         'area' => 'zoomx_main',
     ],
+    'zoomx_enable_exception_handler' => [
+        'xtype' => 'combo-boolean',
+        'value' => true,
+        'area' => 'zoomx_main',
+    ],
     /* Smarty */
     'zoomx_smarty_cache_dir' => [
         'xtype' => 'textfield',

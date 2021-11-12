@@ -565,20 +565,19 @@ $router->get('file.pdf',  function () {
 * zoomx_autodetect_content_type - enables automatic detection of the Content-Type in the disabled resource autoloading mode.
 * zoomx_autoload_resource - disables searching and auto-loading the resource. This allows to use fully virtual pages.
 * zoomx_caching - to cache template files. By default, `false`. In development mode it's better to disable it.
+* zoomx_cache_routes - enables route caching. Caution! Turn it on only if controllers are used in routes. By default, `false`.
 * zoomx_enable_pdotools_adapter - replaces the Fenom template engine with the ZoomX one for parsing chunks in the pdoTools snippets.
 * zoomx_enable_exception_handler - enable its own exception handler for strict routing mode. 
 * zoomx_http_method_override - allows to specify the HTTP methods "PATCH", "PUT" and "DELETE" (not supported in HTML forms) by setting a form input element named as "_method" (`<input type="hidden" name="_method" value="PUT">`).
 * zoomx_include_modx - include $modx and $zoomx objects into templates. By default, `true`.
 * zoomx_include_request_info - adds information about the request to the response in API mode.
-* zoomx_modx_tag_syntax - allows to use MODX style tags - {'*pagetitle'}, {'++site_name'}, {'~5'} and {'%lexicon'}. A negative impact on performance.
 * zoomx_parser_class - parser class. It should implement the Zoomx\ParserInterface interface. By default, `ZoomSmarty`.
 * zoomx_routing_mode - routing mode. 0 - disabled (routes are ignored); 1 - mixed (if no route is found, MODX will continue the search); 2 - strict (if no route is found, error 404 will occur). By default, `1`.
 * zoomx_show_error_details - show full error information in the error page.
-* zoomx_file_snippets_path - absolute path to file snippets. By default, `{core_path}elements/snippets/`.
+* zoomx_file_snippets_path - absolute path to file snippets. You can specify multiple paths by separating them with ";". By default, `{core_path}elements/snippets/`.
 * zoomx_template_dir - full path to [template files](https://www.smarty.net/docs/en/variable.template.dir.tpl). By default, `{core_path}components/zoomx/templates/`.
-* zoomx_template_extension - template file extension. It is used for security reasons. By default, `tpl`.
 * zoomx_theme - site theme. it's a folder name in the template directory. It allows you to manage site themes. By default, `default`.
-* zoomx_use_zoomx_parser_as_default - use the specified template engine instead of the MODX parser.
+* zoomx_use_zoomx_parser_as_default - use the specified template engine (Smarty by-default) instead of the MODX parser.
 #### Smarty area
 * zoomx_default_tpl - it's used to output errors for which a custom template is not defined. By default, `error.tpl`.
 * zoomx_modx_tag_syntax - allows to use MODX style tags - {'*pagetitle'}, {'++site_name'}, {'~5'} and {'%lexicon'}. A negative impact on performance.
@@ -588,7 +587,7 @@ $router->get('file.pdf',  function () {
 * zoomx_smarty_custom_plugin_dir - full path to custom Smarty plugins. By default, `{core_path}components/zoomx/smarty/custom_plugins/`.
 * zoomx_smarty_security_enable - enables the mode for managing Smarty security, which is defined in the security class.
 * zoomx_smarty_security_class - the class in which the [security settings](https://www.smarty.net/docs/en/advanced.features.tpl#advanced.features.security) are defined.
-* zoomx_template_extension - template file extension. It is used for convenience and for security reasons. By default, tpl.
+* zoomx_template_extension - template file extension. It is used for convenience and for security reasons. By default, "tpl".
 
 ## System settings for extending classes
 You can override these settings to replace the base classes with custom ones.  
