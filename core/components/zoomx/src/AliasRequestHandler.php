@@ -182,8 +182,13 @@ class AliasRequestHandler extends RequestHandler
             }
 
             if (!$resourceId) {
-                $this->resource = $this->modx->getObject('modResource', ['uri' => $uri, 'context_key' => $context, 'deleted' => false]);
-                $resourceId = is_object($this->resource) ? $this->resource->get('id') : null;
+                $criteria = $this->modx->newQuery('modResource');
+                $criteria->where(['uri' => $uri, 'context_key' => $context, 'deleted' => 0]);
+                if ($this->modx->getSessionState() !== \modX::SESSION_STATE_INITIALIZED || !$this->modx->hasPermission('view_unpublished')) {
+                    $criteria->where(['published' => 1]);
+                }
+                $this->resource = $this->modx->getObject('modResource', $criteria);
+                $resourceId = isset($this->resource) ? $this->resource->get('id') : null;
             }
         }
 
