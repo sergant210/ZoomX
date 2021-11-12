@@ -1,5 +1,11 @@
 Changelog for ZoomX.
 
+3.3.0-pl
+==============
+- Added route caching.
+- Added multiple paths for snippets.
+- Fixed a bug with unpublished resources (#3).
+
 3.2.0-pl
 ==============
 - Added modifier fuzzyDate.
