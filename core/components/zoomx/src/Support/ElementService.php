@@ -17,6 +17,7 @@ class ElementService
     protected $snippetRepository;
     /** @var Repository  */
     protected $propertySetRepository;
+    protected $snippetPaths = [];
 
     /**
      * @param modX $modx A reference to the modX object
@@ -120,7 +121,7 @@ class ElementService
                 if (getenv("APP_ENV") !== "test") {
                     $this->modx->log(modX::LOG_LEVEL_ERROR, $this->modx->lexicon('zoomx_snippet_not_found', ['name' => $name]));
                 }
-             return false;
+                return false;
             }
             if ($snippet->id && !empty($propertySet)) {
                 $snippet->set('name', "$name@$propertySet");
@@ -144,10 +145,8 @@ class ElementService
      */
     public function runFileSnippet(string $name, array $scriptProperties)
     {
-        $snippetPath = $this->modx->getOption('zoomx_file_snippets_path', null, MODX_CORE_PATH . 'elements/snippets/');
-        $file = $snippetPath . $this->sanitizePath($name);
-        $file = pathinfo($file, PATHINFO_EXTENSION) === 'php' ? $file : "$file.php";
-        if (!file_exists($file)) {
+        $file = $this->findFile($name);
+        if (null === $file) {
             if (getenv("APP_ENV") !== "test") {
                 $this->modx->log(xPDO::LOG_LEVEL_ERROR, $this->modx->lexicon('zoomx_snippet_file_not_found', ['name' => $name]));
             }
@@ -169,6 +168,42 @@ class ElementService
             $scriptProperties,
             $this->modx
         );
+    }
+
+    /**
+     * @param string $name
+     * @return string|null
+     */
+    protected function findFile(string $name)
+    {
+        if (empty($this->snippetPaths)) {
+            $paths = $this->modx->getOption('zoomx_file_snippets_path', null, MODX_CORE_PATH . 'elements/snippets/');
+            $paths = explode(';', $paths);
+            foreach ($paths as $path) {
+                if (is_dir($path)) {
+                    $this->addSnippetPath($this->sanitizePath(rtrim($path, '/\\') . '/'));
+                }
+            }
+        }
+        $name = $this->sanitizePath(ltrim($name, '/\\'));
+        $name = pathinfo($name, PATHINFO_EXTENSION) === 'php' ? $name : "$name.php";
+        foreach ($this->snippetPaths as $path) {
+            if (file_exists($path . $name)) {
+                return $path . $name;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param string $path
+     * @return $this
+     */
+    public function addSnippetPath(string $path)
+    {
+        $this->snippetPaths[] = $path;
+        return $this;
     }
 
     /**
