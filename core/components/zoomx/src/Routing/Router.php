@@ -118,14 +118,13 @@ class Router
                 throw new $exception($routeInfo[1]);
             case Dispatcher::FOUND:
                 $handler = $routeInfo[1];
-                /** @var Request $request */
+                $this->setRouteVars($routeInfo[2])->setRouteParams($routeInfo[3] ?? [])->setHandler($handler);
                 zoomx()->getRequest()->hasRoute(true);
 
-                $this->setRouteVars($routeInfo[2])->setRouteParams($routeInfo[3] ?? [])->setHandler($handler);
-                /*$this->modx->invokeEvent('OnBeforeRouteHandle', [
+                $this->modx->invokeEvent('OnBeforeRouteProcess', [
                     'uri' => $uri,
-                    'request' => $request,
-                ]);*/
+                    'router' => $this,
+                ]);
 
                 $output = call_user_func_array($this->getCallback($handler), $this->getRouteVars());
                 break;
