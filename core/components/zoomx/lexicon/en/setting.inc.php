@@ -2,6 +2,7 @@
 
 $_lang['area_zoomx_main'] = 'Main';
 $_lang['area_zoomx_smarty'] = 'Smarty';
+$_lang['area_zoomx_routing'] = 'Routing';
 
 $_lang['setting_zoomx_caching'] = 'Cache templates';
 $_lang['setting_zoomx_caching_desc'] = 'Cache template files.';
@@ -54,3 +55,5 @@ $_lang['setting_zoomx_smarty_security_class'] = 'Security class';
 $_lang['setting_zoomx_smarty_security_class_desc'] = 'The class in which the security settings are defined.';
 $_lang['setting_zoomx_cache_routes'] = 'Cache routes';
 $_lang['setting_zoomx_cache_routes_desc'] = 'Enables route caching. Caution! Turn it on only if controllers are used in routes.';
+$_lang['setting_zoomx_short_name_controllers'] = 'Short names of controllers';
+$_lang['setting_zoomx_short_name_controllers_desc'] = 'Allows you to specify the names of controllers without the namespace "Zoomx\Controllers". It will be added automatically.';

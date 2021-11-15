@@ -16,9 +16,9 @@ class Service
 {
     use Macroable;
 
-    const ROUTING_DISABLED = 0;
-    const ROUTING_SOFT     = 1;
-    const ROUTING_STRICT   = 2;
+    public const ROUTING_DISABLED = 0;
+    public const ROUTING_SOFT     = 1;
+    public const ROUTING_STRICT   = 2;
 
     /** @var Service */
     protected static $instance;

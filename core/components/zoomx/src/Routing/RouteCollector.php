@@ -3,8 +3,6 @@
 namespace Zoomx\Routing;
 
 
-use Zoomx\RedirectResponse;
-
 class RouteCollector extends \FastRoute\RouteCollector
 {
     public function redirect(string $from, string $targetUrl, int $status = 302)
@@ -16,7 +14,7 @@ class RouteCollector extends \FastRoute\RouteCollector
             ]
         ];
 
-        $this->addRedirect('GET', $from, [RedirectResponse::class, '__invoke'], $data);
+        $this->addRedirect('GET', $from, ['\Zoomx\RedirectResponse', '__invoke'], $data);
     }
 
     /**

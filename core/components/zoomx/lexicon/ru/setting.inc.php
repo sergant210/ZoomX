@@ -2,6 +2,7 @@
 
 $_lang['area_zoomx_main'] = 'Основные';
 $_lang['area_zoomx_smarty'] = 'Smarty';
+$_lang['area_zoomx_routing'] = 'Маршрутизация';
 
 $_lang['setting_zoomx_caching'] = 'Кэшировать шаблоны';
 $_lang['setting_zoomx_caching_desc'] = 'Кэшировать файлы шаблонов.';
@@ -11,8 +12,8 @@ $_lang['setting_zoomx_theme'] = 'Тема';
 $_lang['setting_zoomx_theme_desc'] = 'Имя папки в каталоге шаблонов. Позволяет управлять темами сайта.';
 $_lang['setting_zoomx_template_dir'] = 'Путь к шаблонам';
 $_lang['setting_zoomx_template_dir_desc'] = 'Полный путь к файлам шаблонов.';
-$_lang['setting_zoomx_routing_mode'] = 'Режим роутинга';
-$_lang['setting_zoomx_routing_mode_desc'] = '0 - роутинг выключен; 1 - смешанный режим (если роут не найден, поиском займётся MODX); 2 - монопольный режим (если роут не найден, то ошибка 404).';
+$_lang['setting_zoomx_routing_mode'] = 'Режим маршрутизации';
+$_lang['setting_zoomx_routing_mode_desc'] = '0 - маршрутизация выключена; 1 - смешанный режим (если роут не найден, поиском займётся MODX); 2 - монопольный режим (если роут не найден, то ошибка 404).';
 $_lang['setting_zoomx_parser_class'] = 'Класс парсера';
 $_lang['setting_zoomx_parser_class_desc'] = 'Укажите класс парсера ZoomX. Он должен имплементировать интерфейс Zoomx\ParserInterface. По-умолчанию, ZoomSmarty.';
 $_lang['setting_zoomx_include_modx'] = 'Разрешить $modx и $zoomx в шаблонах';
@@ -54,3 +55,5 @@ $_lang['setting_zoomx_smarty_security_class'] = 'Класс безопаснос
 $_lang['setting_zoomx_smarty_security_class_desc'] = 'Класс, в котором определяются настройки безопасности.';
 $_lang['setting_zoomx_cache_routes'] = 'Кэшировать роуты';
 $_lang['setting_zoomx_cache_routes_desc'] = 'Включает кэширование роутов. Внимание! Включайте только если в роутах используются контроллеры.';
+$_lang['setting_zoomx_short_name_controllers'] = 'Короткие названия контроллеров';
+$_lang['setting_zoomx_short_name_controllers_desc'] = 'Разрешает указывать имена контроллеров без пространства "Zoomx\Contollers". Оно будет добавлено автоматически.';

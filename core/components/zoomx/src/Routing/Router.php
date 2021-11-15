@@ -164,12 +164,13 @@ class Router
      */
     protected function getCallback($handler)
     {
-        if (is_string($handler)) {
-            $handler = method_exists($handler, '__invoke') ? [$handler, '__invoke'] : [$handler, 'index'];
-        }
+        $handler = $this->getFullQualifiedName($handler);
 
         if (is_array($handler)) {
             [$class, $method] = $handler;
+            if (empty($method)) {
+                $method = method_exists($class, '__invoke') ? '__invoke' : 'index';
+            }
             $method = empty($method) ? 'index' : $method;
             $handler = [new $class($this->modx), $method];
         }
@@ -186,7 +187,7 @@ class Router
         } else {
             return $handler;
         }
-        if ($FQN[0] !== '\\' && strpos($FQN, '\\') === false) {
+        if (zoomx()->config('zoomx_short_name_controllers', false) && $FQN[0] !== '\\' && strpos($FQN, $this->controllerNamespace) !== 0) {
             $FQN = $this->controllerNamespace . $FQN;
         }
         return [$FQN];

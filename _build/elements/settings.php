@@ -16,11 +16,6 @@ return [
         'value' => '{core_path}components/zoomx/templates/',
         'area' => 'zoomx_main',
     ],
-    'zoomx_routing_mode' => [
-        'xtype' => 'numberfield',
-        'value' => 1,
-        'area' => 'zoomx_main',
-    ],
     'zoomx_parser_class' => [
         'xtype' => 'textfield',
         'value' => 'ZoomSmarty',
@@ -71,15 +66,26 @@ return [
         'value' => false,
         'area' => 'zoomx_main',
     ],
-    'zoomx_cache_routes' => [
-        'xtype' => 'combo-boolean',
-        'value' => false,
-        'area' => 'zoomx_main',
-    ],
     'zoomx_enable_exception_handler' => [
         'xtype' => 'combo-boolean',
         'value' => true,
         'area' => 'zoomx_main',
+    ],
+    /* Routing */
+    'zoomx_routing_mode' => [
+        'xtype' => 'numberfield',
+        'value' => 1,
+        'area' => 'zoomx_routing',
+    ],
+    'zoomx_cache_routes' => [
+        'xtype' => 'combo-boolean',
+        'value' => false,
+        'area' => 'zoomx_routing',
+    ],
+    'zoomx_short_name_controllers' => [
+        'xtype' => 'combo-boolean',
+        'value' => false,
+        'area' => 'zoomx_routing',
     ],
     /* Smarty */
     'zoomx_smarty_cache_dir' => [
