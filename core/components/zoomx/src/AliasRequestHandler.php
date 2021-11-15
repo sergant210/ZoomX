@@ -4,7 +4,6 @@ namespace Zoomx;
 use Error;
 use Exception;
 use FastRoute\Dispatcher;
-use FastRoute\RouteCollector;
 use modResource;
 use modResponse;
 use Zoomx\DTO\Error as ErrorData;
@@ -15,13 +14,6 @@ use function FastRoute\cachedDispatcher;
 
 class AliasRequestHandler extends RequestHandler
 {
-    /** @var Dispatcher */
-    protected $dispatcher;
-
-    protected $routeCacheFile = 'route.cache.php';
-    protected $routeMapFile = 'route.map.php';
-
-
     /**
      * {@inheritDoc}
      */
@@ -58,53 +50,10 @@ class AliasRequestHandler extends RequestHandler
      */
     public function processRouting($uri)
     {
-        $output = null;
-
-        $httpMethod = $this->modx->request->method;
-        $routeInfo = $this->getDispatcher()->dispatch($httpMethod, $uri);
-
-        switch ($routeInfo[0]) {
-            case Dispatcher::NOT_FOUND:
-                if (zoomx()->getRoutingMode() === Service::ROUTING_STRICT) {
-                    abortx(404);
-                }
-                break;
-            case Dispatcher::METHOD_NOT_ALLOWED:
-                $exception = zoomx()->getExceptionClass(405);
-                throw new $exception($routeInfo[1]);
-            case Dispatcher::FOUND:
-                $handler = $routeInfo[1];
-                /** @var Request $request */
-                $request = zoomx()->getRequest()->hasRoute(true)->setRouteParams($routeInfo[2]);
-
-                /*$this->modx->invokeEvent('OnBeforeRouteHandle', [
-                    'uri' => $uri,
-                    'request' => $request,
-                ]);*/
-                $output = call_user_func_array($this->getCallback($handler), $request->getRouteParams());
-                break;
-        }
+        $output = zoomx('router')->process($uri);
 
         $this->handleOutput($output);
     }
-
-    /**
-     * @param array|callable $handler
-     * @return string|array
-     * @throws Exception
-     */
-    protected function getCallback($handler)
-    {
-        $handler = is_string($handler) ? [$handler] : $handler;
-        if (is_array($handler)) {
-            [$class, $method] = $handler;
-            $method = empty($method) ? 'index' : $method;
-            $handler = [new $class($this->modx), $method];
-        }
-
-        return $handler;
-    }
-
 
     /**
      * Handle the result.
@@ -193,33 +142,6 @@ class AliasRequestHandler extends RequestHandler
         }
 
         return $resourceId ? parent::getResource($resourceId, $options) : $resourceId;
-    }
-
-    protected function getDispatcher()
-    {
-        if (!$this->dispatcher) {
-            $modx = $this->modx;
-            $requestHandler = $this;
-            if ($modx->getOption('zoomx_cache_routes', null, false)) {
-                $this->validateCache();
-            }
-            $this->dispatcher = cachedDispatcher(
-                static function (RouteCollector $router) use ($modx, $requestHandler) {
-                    include_once MODX_CORE_PATH . MODX_CONFIG_KEY . '/routes.php';
-                },
-                [
-                    'cacheFile' => $this->getCachePath() . $this->routeCacheFile,
-                    'cacheDisabled' => !$modx->getOption('zoomx_cache_routes', null, false),
-                ]
-            );
-        }
-
-        return $this->dispatcher;
-    }
-
-    protected function getCachePath()
-    {
-        return $this->modx->getCachePath() . 'zoomx/';
     }
 
     protected function clearRequestParam()
@@ -334,27 +256,18 @@ class AliasRequestHandler extends RequestHandler
         ]);
     }
 
+    /**
+     * @param int $code
+     * @param string null $default
+     * @return mixed|string|null
+     * @throws \ReflectionException
+     * @throws \SmartyException
+     */
     private function getErrorTpl($code, $default = null)
     {
         $ext = $this->modx->getOption('zoomx_template_extension', null, 'tpl');
         $tpl = $code . (!empty($ext) ? ".$ext" : '');
 
         return parserx()->templateExists($tpl) ? $tpl : $default;
-    }
-
-    private function validateCache()
-    {
-
-        $routesHash = md5_file(MODX_CORE_PATH . MODX_CONFIG_KEY . '/routes.php');
-        if (file_exists($map = $this->getCachePath() . $this->routeMapFile)) {
-            $cachedHash = include $map;
-            if ($cachedHash !== $routesHash) {
-                unlink($this->getCachePath() . $this->routeCacheFile);
-            }
-        }
-
-        if (null === $cachedHash || $cachedHash !== $routesHash) {
-            file_put_contents($map, "<?php return '$routesHash';");
-        }
     }
 }

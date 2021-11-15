@@ -32,6 +32,8 @@ class Service
     protected $request;
     /** @var ElementService */
     protected $elementService;
+    /** @var Routing\Router */
+    protected $router;
     /** @var array */
     protected $exceptions = [];
 
@@ -63,6 +65,10 @@ class Service
         }
         // Fire the event.
         $modx->invokeEvent('onZoomxInit');
+        // Load modResponse class
+        if (!class_exists('modResponse')) {
+            require_once  MODX_CORE_PATH . 'model/modx/modresponse.class.php';
+        }
     }
 
     private function getExceptionHandler()
@@ -141,9 +147,6 @@ class Service
     public function getResponse($class = null, ...$params)
     {
         if (!isset($this->response) || (is_string($class) && !$this->response instanceof $class)) {
-            if (!class_exists('modResponse')) {
-                require  MODX_CORE_PATH . 'model/modx/modresponse.class.php';
-            }
             if (!class_exists('ZoomResponse')) {
                 class_alias(Response::class, 'ZoomResponse');
             }
@@ -253,6 +256,16 @@ class Service
         return $this->elementService;
     }
 
+    public function getRouter()
+    {
+        if (!isset($this->router)) {
+            $class = $this->modx->getOption('zoomx_router_class', null, Routing\Router::class, true);
+            $this->router = new $class($this->modx);
+        }
+
+        return $this->router;
+    }
+
     public function getView(string $name, array $data)
     {
         $class = $this->modx->getOption('zoomx_view_class', null, View::class, true);
@@ -266,8 +279,8 @@ class Service
      */
     public function shouldBeJson()
     {
-        return (isset($_SERVER['HTTP_ACCEPT']) && strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false) ||
-               (isset($_SERVER['Content-Type']) &&  strpos($_SERVER['Content-Type'], 'application/json') !== false);
+        return (isset($_SERVER['HTTP_ACCEPT']) && strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false)
+            || (isset($_SERVER['Content-Type']) && strpos($_SERVER['Content-Type'], 'application/json') !== false);
     }
 
     /**

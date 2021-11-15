@@ -6,6 +6,8 @@ $_lang['zoomx_template_not_found'] = 'Template "[[+name]]" doesn\'t exist.';
 $_lang['zoomx_snippet_file_not_found'] = 'Snippet file "[[+name]]" is not found.';
 $_lang['zoomx_snippet_not_found'] = 'Snippet "[[+name]]" is not found.';
 $_lang['zoomx_chunk_not_found'] = 'Specified chunk "[[+name]]" is not found.';
+$_lang['zoomx_wrong_redirect_status'] = 'The HTTP status code is not a redirect ("[[+status]]" given).';
+$_lang['zoomx_redirect_to_empty_url'] = 'Cannot redirect to an empty URL.';
 
 $_lang['zoomx_just_now'] = 'Just now';
 $_lang['zoomx_date_today'] = 'Today at';

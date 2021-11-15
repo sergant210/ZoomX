@@ -1,7 +1,6 @@
 <?php
 namespace Zoomx;
 
-
 use InvalidArgumentException;
 use modResponse;
 use modX;
@@ -35,18 +34,23 @@ class RedirectResponse extends modResponse
      *
      * @throws InvalidArgumentException
      */
-    public function __construct($modx, $url, $status = 302, array $headers = [])
+    public function __construct(modX $modx, string $url = '', int $status = 0, array $headers = [])
     {
         parent::__construct($modx);
 
+        $routeParams = zoomx('router')->getRouteParams();
+
+        $url = $url ?: @$routeParams['redirect']['targetUrl'];
         $this->setTargetUrl($url);
-        if ($status < 100 || $status >= 600) {
-            throw new InvalidArgumentException('The HTTP status code "' . $status . '" is not valid.');
+
+        if (!empty($status)) {
+            $this->statusCode = $status;
+        } else {
+            $this->statusCode = $routeParams['redirect']['status'] ?? $this->statusCode;
         }
-        $this->statusCode = $status;
 
         if (!$this->isRedirectStatus()) {
-            throw new InvalidArgumentException('The HTTP status code is not a redirect ("' . $status . '" given).');
+            throw new InvalidArgumentException($modx->lexicon('zoomx_wrong_redirect_status', ['status' => $this->statusCode]));
         }
 
         $this->headers = new Repository();
@@ -77,7 +81,7 @@ class RedirectResponse extends modResponse
     public function setTargetUrl($url)
     {
         if (empty($url)) {
-            throw new InvalidArgumentException('Cannot redirect to an empty URL.');
+            throw new InvalidArgumentException($this->modx->lexicon('zoomx_redirect_to_empty_url'));
         }
 
         $this->targetUrl = $url;
@@ -99,6 +103,10 @@ class RedirectResponse extends modResponse
      */
     public function outputContent(array $options = [])
     {
+        $this->parseTagretUrl();
+        if (empty($this->targetUrl)) {
+            throw new InvalidArgumentException('Cannot redirect to an empty URL.');
+        }
         $this->sendHeaders();
         $this->sendRedirect($this->targetUrl, ['responseCode' => $this->getResponseHeader()]);
     }
@@ -127,5 +135,18 @@ class RedirectResponse extends modResponse
         }
 
         return $this;
+    }
+
+    protected function parseTagretUrl()
+    {
+
+        foreach (zoomx('router')->getRouteVars() as $var => $value) {
+            $this->targetUrl = str_replace('{$' . $var . '}', $value, $this->targetUrl);
+        }
+    }
+
+    public function __invoke()
+    {
+        $this->outputContent();
     }
 }
