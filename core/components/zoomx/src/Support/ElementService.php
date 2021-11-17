@@ -17,7 +17,10 @@ class ElementService
     protected $snippetRepository;
     /** @var Repository  */
     protected $propertySetRepository;
+    /** @var array  */
     protected $snippetPaths = [];
+    /** @var string  */
+    private $snippetCacheKey ='zoomx/snippets';
 
     /**
      * @param modX $modx A reference to the modX object
@@ -98,10 +101,22 @@ class ElementService
      * Replacement for modX::runSnippet() method.
      * @param string $name
      * @param array $properties
+     * @param array|int $options
      * @return mixed|bool
      */
-    public function runSnippet(string $name, array $properties = [])
+    public function runSnippet(string $name, array $properties = [], $cacheOptions = [])
     {
+        $cache = !empty($cacheOptions) || $cacheOptions === 0;
+        if ($cache) {
+            $hash = substr(md5(json_encode($properties)), 0, 8);
+            $cacheKey = $this->getCacheKey($name, $hash);
+        }
+        if (is_numeric($cacheOptions)) {
+            $cacheOptions = [xPDO::OPT_CACHE_EXPIRES => (int)$cacheOptions];
+        }
+        $cacheOptions = is_array($cacheOptions) ? $cacheOptions : [];
+        $cacheOptions[xPDO::OPT_CACHE_KEY] = $this->snippetCacheKey;
+
         $name = trim($name);
         if (empty($name)) {
             if (getenv("APP_ENV") !== "test") {
@@ -128,23 +143,45 @@ class ElementService
             }
         }
         $this->snippetRepository->add($name, $snippet);
+
         //TODO: exclude the MODX parser.
         $snippet->_cacheable = false;
         $snippet->_processed = false;
         $snippet->_propertyString = '';
         $snippet->_tag = '';
 
-        return $snippet->process($properties);
+        if ($cache && !empty($cacheOptions)) {
+            $cacheManager = zoomx()->getCacheManager();
+            $output = $cacheManager->remember($cacheKey, $cacheOptions, function () use ($snippet, $properties) {
+                return $snippet->process($properties);
+            });
+        } else {
+            $output = $snippet->process($properties);
+        }
+
+        return $output;
     }
 
     /**
      * Executes a file like a snippet.
      * @param string $name
-     * @param array $scriptProperties
+     * @param array $properties
+     * @param array|int $cacheOptions Cache options or cache lifetime in seconds.
      * @return mixed
      */
-    public function runFileSnippet(string $name, array $scriptProperties)
+    public function runFileSnippet(string $name, array $properties, $cacheOptions = [])
     {
+        $cache = !empty($cacheOptions) || $cacheOptions === 0;
+        if ($cache) {
+            $hash = substr(md5(json_encode($properties)), 0, 8);
+            $cacheKey = $this->getCacheKey($name, $hash);
+        }
+        if (is_numeric($cacheOptions)) {
+            $cacheOptions = [xPDO::OPT_CACHE_EXPIRES => (int)$cacheOptions];
+        }
+        $cacheOptions = is_array($cacheOptions) ? $cacheOptions : [];
+        $cacheOptions[xPDO::OPT_CACHE_KEY] = $this->snippetCacheKey;
+
         $file = $this->findFile($name);
         if (null === $file) {
             if (getenv("APP_ENV") !== "test") {
@@ -152,22 +189,33 @@ class ElementService
             }
             return false;
         }
+        $func = $this->getFunction();
+        if ($cache && !empty($cacheOptions)) {
+            $cacheManager = zoomx()->getCacheManager();
+            $output = $cacheManager->remember($cacheKey, $cacheOptions, function () use ($func, $file, $properties) {
+                return $func($file, $properties, $this->modx);
+            });
+        } else {
+            $output = $func($file, $properties, $this->modx);
+        }
+        return $output;
+    }
 
-        return call_user_func(
-            static function ($file, $scriptProperties, $modx) {
-                ob_start();
-                extract($scriptProperties, EXTR_SKIP);
-                $output = include $file;
-                $output = $output ?? '';
-                $output = ob_get_length() ? ob_get_contents() . $output : $output;
-                ob_end_clean();
+    /**
+     * @return \Closure
+     */
+    private function getFunction()
+    {
+        return static function ($file, $scriptProperties, $modx) {
+            ob_start();
+            extract($scriptProperties, EXTR_SKIP);
+            $output = include $file;
+            $output = $output ?? '';
+            $output = ob_get_length() ? ob_get_contents() . $output : $output;
+            ob_end_clean();
 
-                return $output;
-            },
-            $file,
-            $scriptProperties,
-            $this->modx
-        );
+            return $output;
+        };
     }
 
     /**
@@ -194,6 +242,11 @@ class ElementService
         }
 
         return null;
+    }
+
+    protected function getCacheKey($name, $hash)
+    {
+        return preg_replace('|[^A-Za-z0-9-_]|', '_', ltrim($name, '/\\'))  . '_' . $hash;
     }
 
     /**
@@ -320,6 +373,15 @@ class ElementService
     public function sanitizePath(string $path): string
     {
         return preg_replace(["/\.*[\/|\\\]/i", "/[\/|\\\]+/i"], ['/', '/'], $path);
+    }
+
+    /**
+     *
+     */
+    public function clearSnippetsCache()
+    {
+        $cacheManager = $this->modx->getCacheManager();
+        $cacheManager->deleteTree($cacheManager->getCachePath() . 'zoomx/snippets');
     }
 
     /**

@@ -23,5 +23,6 @@ switch ($modx->event->name) {
         break;
     case 'OnCacheUpdate':
         $parser->refresh(['cache', 'compiled']);
+        zoomx('elementService')->clearSnippetsCache();
         break;
 }

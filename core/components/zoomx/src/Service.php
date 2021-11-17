@@ -1,5 +1,7 @@
 <?php
+
 namespace Zoomx;
+
 
 use modParser;
 use modX;
@@ -34,6 +36,8 @@ class Service
     protected $elementService;
     /** @var Routing\Router */
     protected $router;
+    /** @var Cache\CacheManager */
+    protected $cacheManager;
     /** @var array */
     protected $exceptions = [];
 
@@ -71,27 +75,6 @@ class Service
         }
     }
 
-    private function getExceptionHandler()
-    {
-        $exceptionHandlerClass = $this->modx->getOption('zoomx_exception_handler_class', null, ExceptionHandler::class, true);
-
-        return new $exceptionHandlerClass($this->modx, $this->getRequest()->getRequestHandler());
-    }
-
-    private function loadExceptions()
-    {
-        $this->exceptions = require dirname(__DIR__) . '/config/exceptions.php';
-        $customFile = MODX_CORE_PATH . MODX_CONFIG_KEY . '/exceptions.php';
-        if (file_exists($customFile)) {
-            $customExceptions = require $customFile;
-        }
-        if (!empty($customExceptions) && is_array($customExceptions)) {
-            foreach ($customExceptions as $code => $class) {
-                $this->exceptions[$code] = $class;
-            }
-        }
-    }
-
     /**
      * @param modX|null $modx
      * @return Service
@@ -102,6 +85,23 @@ class Service
         }
 
         return self::$instance;
+    }
+
+    /**
+     * @return \Zoomx\Cache\CacheManager
+     */
+    public function getCacheManager()
+    {
+        if (!isset($this->cacheManager)) {
+            $cacheManagerClass = $this->modx->getOption('zoomx_cache_manager_class', null, Cache\CacheManager::class, true);
+            if (class_exists($cacheManagerClass)) {
+                $this->cacheManager = $cacheManagerClass::getInstance($this->modx);
+            } else {
+                throw new \InvalidArgumentException("[ZoomX] Specified cache manager class $cacheManagerClass not found.");
+            }
+        }
+
+        return $this->cacheManager;
     }
 
     /**
@@ -473,6 +473,27 @@ class Service
     public function runFileSnippet(string $name, array $scriptProperties)
     {
         return $this->getElementService()->runFileSnippet($name, $scriptProperties);
+    }
+
+    private function getExceptionHandler()
+    {
+        $exceptionHandlerClass = $this->modx->getOption('zoomx_exception_handler_class', null, ExceptionHandler::class, true);
+
+        return new $exceptionHandlerClass($this->modx, $this->getRequest()->getRequestHandler());
+    }
+
+    private function loadExceptions()
+    {
+        $this->exceptions = require dirname(__DIR__) . '/config/exceptions.php';
+        $customFile = MODX_CORE_PATH . MODX_CONFIG_KEY . '/exceptions.php';
+        if (file_exists($customFile)) {
+            $customExceptions = require $customFile;
+        }
+        if (!empty($customExceptions) && is_array($customExceptions)) {
+            foreach ($customExceptions as $code => $class) {
+                $this->exceptions[$code] = $class;
+            }
+        }
     }
 
     private function preparePdoToolsAdapter(): void
