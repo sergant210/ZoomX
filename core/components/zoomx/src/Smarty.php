@@ -14,6 +14,8 @@ class Smarty extends BaseSmarty implements Contracts\ParserInterface
     protected $zoomService;
     /** @var View */
     protected $tpl;
+    /** @var \Parsedown */
+    protected $parsedown;
 
     /**
      * @param modX $modx A reference to the modX object
@@ -225,6 +227,14 @@ class Smarty extends BaseSmarty implements Contracts\ParserInterface
     public function hasTpl()
     {
         return isset($this->tpl);
+    }
+
+    public function markdown(string $content, $secure = false)
+    {
+        $this->parsedown = $this->parsedown ?? new \Parsedown();
+        $this->parsedown->setSafeMode($secure);
+
+        return $this->parsedown->text($content);
     }
 
     /**
