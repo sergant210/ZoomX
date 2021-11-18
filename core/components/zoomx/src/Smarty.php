@@ -56,7 +56,7 @@ class Smarty extends BaseSmarty implements Contracts\ParserInterface
         // Enable security
         if ($modx->getOption('zoomx_smarty_security_enable', null, false)) {
             $securityClass = $this->getSecurityClass($corePath);
-            empty($securityClass) or $this->enableSecurity($securityClass);
+            $this->enableSecurity($securityClass);
         }
 
         // Set prefilters
@@ -81,11 +81,12 @@ class Smarty extends BaseSmarty implements Contracts\ParserInterface
             $FQN = $corePath . "smarty/security/$securityClass.php";
             if (!file_exists($FQN)) {
                 $this->modx->log(modX::LOG_LEVEL_ERROR, "Class $securityClass not found.");
+                return null;
             } else {
                 include $FQN;
             }
         }
-        return $securityClass ?? '';
+        return $securityClass ?: null;
     }
 
     protected function loadPrefilters()
