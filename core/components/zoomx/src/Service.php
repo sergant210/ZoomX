@@ -280,7 +280,7 @@ class Service
     public function shouldBeJson()
     {
         return (isset($_SERVER['HTTP_ACCEPT']) && strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false)
-            || (isset($_SERVER['Content-Type']) && strpos($_SERVER['Content-Type'], 'application/json') !== false);
+            || (isset($_SERVER['CONTENT_TYPE']) && strpos($_SERVER['CONTENT_TYPE'], 'application/json') !== false);
     }
 
     /**
