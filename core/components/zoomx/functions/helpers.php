@@ -3,14 +3,18 @@
 if (!function_exists('zoomx')) {
     /**
      * ZoomX helper for ZoomService.
-     * @param string|null $property
+     * @param string|array|null $key
      * @return Zoomx\Service|mixed
      */
-    function zoomx($property = null)
+    function zoomx($key = null)
     {
         $instance = Zoomx\Service::getInstance();
 
-        return empty($property) ? $instance : $instance->{$property};
+        if (is_array($key)) {
+            return $instance->set($key);
+        }
+
+        return empty($key) ? $instance : $instance->get($key);
     }
 }
 
@@ -46,15 +50,16 @@ if (! function_exists('jsonx')) {
      *
      * @param array $data
      * @param array $headers
+     * @param int $statusCode
      * @return Zoomx\Json\Response
      */
-    function jsonx(array $data = [], array $headers = [])
+    function jsonx(array $data = [], array $headers = [], $statusCode = 200)
     {
         $response = Zoomx\Service::getInstance()->getJsonResponse();
         if (!empty($headers)) {
             $response->headers->add($headers);
         }
-        return $response->setData($data);
+        return $response->setData($data)->setStatusCode($statusCode);
     }
 }
 if (! function_exists('abortx')) {

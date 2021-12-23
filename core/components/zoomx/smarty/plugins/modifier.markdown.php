@@ -10,5 +10,12 @@
  */
 function smarty_modifier_markdown($content, $secure = false)
 {
-    return parserx()->markdown($content, $secure);
+    $zoomx = zoomx();
+    if (!isset($zoomx->parsedown)) {
+        $zoomx->set('parsedown', new \Parsedown());
+    }
+    $parsedown = zoomx('parsedown');
+    $parsedown->setSafeMode($secure);
+
+    return $parsedown->text($content);
 }

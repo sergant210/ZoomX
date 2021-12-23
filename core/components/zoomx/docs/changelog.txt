@@ -1,5 +1,17 @@
 Changelog for ZoomX.
 
+3.4.0-pl
+==============
+- Added support for file plugins.
+- Added modifier "markdown".
+- Added the ability to specify the caching time for snippets.
+- Added the ability to use short controller names.
+- Added short redirect format in routes.
+- Added the "OnBeforeRouteProcess" event.
+- Improved the function jsonx.
+- Fixed a bug in the header name Content-Type for JSON requests.
+- Refactored security functionality.
+
 3.3.0-pl
 ==============
 - Added route caching.
@@ -8,14 +20,14 @@ Changelog for ZoomX.
 
 3.2.0-pl
 ==============
-- Added modifier fuzzyDate.
-- Added modifier dateAgo.
+- Added modifier "fuzzyDate".
+- Added modifier "dateAgo".
 - Fixed a bug with the availability of the $zoomx object in templates (#1).
 - Refactored the mechanism of virtual pages (#2).
 
 3.1.0-beta
 ==============
-- Added modifier declension.
+- Added modifier "declension".
 - Added the ability to use snippets as modifiers.
 - Added the "source" parameter to the request info.
 

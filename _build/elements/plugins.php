@@ -5,7 +5,7 @@ return [
         'file' => 'zoomx',
         'description' => '',
         'events' => [
-            'OnMODXInit' => ['priority' => -1000],
+            'OnInitCulture' => ['priority' => -1000],
             'OnSiteRefresh' => [],
             'OnCacheUpdate' => [],
         ],

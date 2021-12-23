@@ -6,16 +6,19 @@
 if ($transport->xpdo) {
     $modx = $transport->xpdo;
     switch ($options[xPDOTransport::PACKAGE_ACTION]) {
+        case xPDOTransport::ACTION_UPGRADE:
+            if (($eventInit = $modx->getObject('modEvent', ['name' => 'onZoomxInit'])) && $eventInit->name === 'onZoomxInit') {
+                $eventInit->set('name', 'OnZoomxInit');
+                $eventInit->save();
+            }
         case xPDOTransport::ACTION_INSTALL:
-		case xPDOTransport::ACTION_UPGRADE:
             $query = $modx->newQuery('modEvent');
             $query->select('name, groupname');
             $query->where(['groupname' => 'ZoomX']);
-            $data = [];
             if ($query->prepare() && $query->stmt->execute()) {
                 $existEvents = $query->stmt->fetchAll(PDO::FETCH_KEY_PAIR);
             }
-            $events = ['OnRequestError', 'onZoomxInit'];
+            $events = ['OnRequestError', 'OnZoomxInit', 'OnBeforeRouteProcess'];
             foreach ($events as $name) {
                 if (!isset($existEvents[$name])) {
                     /** @var modEvent $event */

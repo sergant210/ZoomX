@@ -14,8 +14,6 @@ class Smarty extends BaseSmarty implements Contracts\ParserInterface
     protected $zoomService;
     /** @var View */
     protected $tpl;
-    /** @var \Parsedown */
-    protected $parsedown;
 
     /**
      * @param modX $modx A reference to the modX object
@@ -56,7 +54,7 @@ class Smarty extends BaseSmarty implements Contracts\ParserInterface
         // Enable security
         if ($modx->getOption('zoomx_smarty_security_enable', null, false)) {
             $securityClass = $this->getSecurityClass($corePath);
-            $this->enableSecurity($securityClass);
+            empty($securityClass) or $this->enableSecurity($securityClass);
         }
 
         // Set prefilters
@@ -81,12 +79,11 @@ class Smarty extends BaseSmarty implements Contracts\ParserInterface
             $FQN = $corePath . "smarty/security/$securityClass.php";
             if (!file_exists($FQN)) {
                 $this->modx->log(modX::LOG_LEVEL_ERROR, "Class $securityClass not found.");
-                return null;
             } else {
                 include $FQN;
             }
         }
-        return $securityClass ?: null;
+        return $securityClass ?? '';
     }
 
     protected function loadPrefilters()
@@ -228,14 +225,6 @@ class Smarty extends BaseSmarty implements Contracts\ParserInterface
     public function hasTpl()
     {
         return isset($this->tpl);
-    }
-
-    public function markdown(string $content, $secure = false)
-    {
-        $this->parsedown = $this->parsedown ?? new \Parsedown();
-        $this->parsedown->setSafeMode($secure);
-
-        return $this->parsedown->text($content);
     }
 
     /**

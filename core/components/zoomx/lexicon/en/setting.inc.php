@@ -57,3 +57,5 @@ $_lang['setting_zoomx_cache_routes'] = 'Cache routes';
 $_lang['setting_zoomx_cache_routes_desc'] = 'Enables route caching. Caution! Turn it on only if controllers are used in routes.';
 $_lang['setting_zoomx_short_name_controllers'] = 'Short names of controllers';
 $_lang['setting_zoomx_short_name_controllers_desc'] = 'Allows you to specify the names of controllers without the namespace "Zoomx\Controllers". It will be added automatically.';
+$_lang['setting_zoomx_controller_namespace'] = 'Controller namespace';
+$_lang['setting_zoomx_short_name_controllers_desc'] = 'Allows to specify controller names without a namespace. The specified namespace will be added automatically.';

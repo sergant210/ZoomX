@@ -77,6 +77,10 @@ class Request extends modRequest
             $this->modx->resourceIdentifier = $this->handler->getResourceIdentifier();
         }
 
+        if (isset($this->modx->response) && $this->modx->response instanceof RedirectResponse) {
+            $this->modx->response->outputContent();
+        }
+
         $this->modx->beforeRequest();
         $this->modx->invokeEvent("OnWebPageInit");
 
@@ -190,9 +194,9 @@ class Request extends modRequest
         $this->handler->sendErrorPage($e);
     }
 
-    private function isApiMode()
+    protected function isApiMode()
     {
-        return  ($this->modx->response && $this->modx->response instanceof Json\ResponseInterface) ||
-                (defined('ZOOMX_API_MODE') && ZOOMX_API_MODE === true);
+        return  ($this->modx->response && $this->modx->response instanceof Contracts\Json\ResponseInterface) ||
+            (defined('ZOOMX_API_MODE') && ZOOMX_API_MODE === true);
     }
 }

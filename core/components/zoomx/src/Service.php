@@ -24,22 +24,14 @@ class Service
 
     /** @var Service */
     protected static $instance;
+
+    protected $container;
     /** @var modX  */
     protected $modx;
-    /** @var ParserInterface */
-    protected $parser;
-    /** @var Response */
-    protected $response;
-    /** @var Request */
-    protected $request;
-    /** @var ElementService */
-    protected $elementService;
-    /** @var Routing\Router */
-    protected $router;
-    /** @var Cache\CacheManager */
-    protected $cacheManager;
     /** @var array */
-    protected $exceptions = [];
+    private $instances = [];
+    /** @var array */
+    private $exceptions = [];
 
 
     /**
@@ -67,12 +59,12 @@ class Service
         if ($modx->getOption('zoomx_enable_pdotools_adapter', null, false)) {
             $this->preparePdoToolsAdapter();
         }
-        // Fire the event.
-        $modx->invokeEvent('onZoomxInit');
+
         // Load modResponse class
         if (!class_exists('modResponse')) {
             require_once  MODX_CORE_PATH . 'model/modx/modresponse.class.php';
         }
+
     }
 
     /**
@@ -87,21 +79,34 @@ class Service
         return self::$instance;
     }
 
+    public function initialize()
+    {
+        if ($this->modx->context->key !== 'mgr' && PHP_SAPI  !== 'cli' && (!defined('MODX_API_MODE') || !MODX_API_MODE)) {
+            $this->modx->request = $this->shouldBeJson() ? $this->getJsonRequest() : $this->getRequest();
+            // Load element service
+            $elService = $this->getElementService();
+            // Fire the event.
+            $this->modx->invokeEvent('OnZoomxInit', ['zoomx' => $this]);
+        }
+
+        return $this;
+    }
+
     /**
      * @return \Zoomx\Cache\CacheManager
      */
     public function getCacheManager()
     {
-        if (!isset($this->cacheManager)) {
+        if (!isset($this->instances['cacheManager'])) {
             $cacheManagerClass = $this->modx->getOption('zoomx_cache_manager_class', null, Cache\CacheManager::class, true);
             if (class_exists($cacheManagerClass)) {
-                $this->cacheManager = $cacheManagerClass::getInstance($this->modx);
+                $this->instances['cacheManager'] = $cacheManagerClass::getInstance($this->modx);
             } else {
                 throw new \InvalidArgumentException("[ZoomX] Specified cache manager class $cacheManagerClass not found.");
             }
         }
 
-        return $this->cacheManager;
+        return $this->instances['cacheManager'];
     }
 
     /**
@@ -110,7 +115,7 @@ class Service
      */
     public function getParser()
     {
-        if (!isset($this->parser)) {
+        if (!isset($this->instances['parser'])) {
             $parserClass = $this->modx->getOption('zoomx_parser_class', null, Smarty::class, true);
             if ($parserClass === 'ZoomSmarty' || ltrim($parserClass, '\\') === Smarty::class) {
                 class_exists(\Smarty::class) or require MODX_CORE_PATH . 'model/smarty/Smarty.class.php';
@@ -119,14 +124,14 @@ class Service
                 }
             }
             if (class_exists($parserClass) && $this->checkImplements($parserClass, ParserInterface::class)) {
-                $this->parser = new $parserClass($this->modx, $this);
+                $this->instances['parser'] = new $parserClass($this->modx, $this);
             } else {
                 $message = $this->modx->lexicon('zoomx_parser_implement_error');
                 die($message);
             }
         }
 
-        return $this->parser;
+        return $this->instances['parser'];
     }
 
     /**
@@ -146,15 +151,15 @@ class Service
      */
     public function getResponse($class = null, ...$params)
     {
-        if (!isset($this->response) || (is_string($class) && !$this->response instanceof $class)) {
+        if (!isset($this->instances['response']) || (is_string($class) && !$this->response instanceof $class)) {
             if (!class_exists('ZoomResponse')) {
                 class_alias(Response::class, 'ZoomResponse');
             }
             $responseClass = $class ?? $this->modx->getOption('zoomx_response_class', null, 'ZoomResponse', true);
-            $this->response = new $responseClass($this->modx, ...$params);
+            $this->instances['response'] = new $responseClass($this->modx, ...$params);
         }
 
-        return $this->response;
+        return $this->instances['response'];
     }
 
     /**
@@ -184,7 +189,7 @@ class Service
      */
     public function getRequest($class = null)
     {
-        if (!isset($this->request) || (is_string($class) && !$this->request instanceof $class)) {
+        if (!isset($this->instances['request']) || (is_string($class) && !$this->request instanceof $class)) {
             if (!class_exists('modRequest')) {
                 require MODX_CORE_PATH . 'model/modx/modrequest.class.php';
             }
@@ -192,10 +197,10 @@ class Service
                 class_alias(Request::class, 'ZoomRequest');
             }
             $requestClass = $class ?? $this->modx->getOption('zoomx_request_class', null, Request::class, true);
-            $this->request = new $requestClass($this->modx);
+            $this->instances['request'] = new $requestClass($this->modx);
         }
 
-        return $this->request;
+        return $this->instances['request'];
     }
 
     /**
@@ -248,22 +253,22 @@ class Service
      */
     public function getElementService()
     {
-        if (!isset($this->elementService)) {
+        if (!isset($this->instances['elementService'])) {
             $class = $this->modx->getOption('zoomx_element_service_class', null, ElementService::class, true);
-            $this->elementService = new $class($this->modx);
+            $this->instances['elementService'] = new $class($this->modx);
         }
 
-        return $this->elementService;
+        return $this->instances['elementService'];
     }
 
     public function getRouter()
     {
-        if (!isset($this->router)) {
+        if (!isset($this->instances['router'])) {
             $class = $this->modx->getOption('zoomx_router_class', null, Routing\Router::class, true);
-            $this->router = new $class($this->modx);
+            $this->instances['router'] = new $class($this->modx);
         }
 
-        return $this->router;
+        return $this->instances['router'];
     }
 
     public function getView(string $name, array $data)
@@ -413,6 +418,19 @@ class Service
     }
 
     /**
+     * Return Composer autoloader.
+     */
+    public function getLoader()
+    {
+        if (!$loader = include (__DIR__.'/../vendor/autoload.php')) {
+            $this->abort(500, 'Composer is not set.');
+        }
+
+        return $loader;
+
+    }
+
+    /**
      * @param string $className
      * @return false
      * @throws \ReflectionException
@@ -429,16 +447,72 @@ class Service
     }
 
     /**
-     * Get a property.
+     * Get an instance.
      *
-     * @param  string  $property
+     * @param  string $name
      * @return mixed
      */
-    public function __get($property)
+    public function get($name)
     {
-        $method = 'get' . ucfirst($property);
+        if (isset($this->instances[$name])) {
+            return $this->instances[$name];
+        }
+
+        $method = 'get' . ucfirst($name);
 
         return method_exists($this, $method) ? $this->$method() : null;
+    }
+
+    /**
+     * Get an instance.
+     *
+     * @param  string $name
+     * @return mixed
+     */
+    public function __get($name)
+    {
+        return $this->get($name);
+    }
+
+    /**
+     * Set an instance.
+     *
+     * @param  string|array $name
+     * @param mixed $value
+     * @return $this
+     */
+    public function set($name, $value = null)
+    {
+        if (is_array($name)) {
+            foreach ($name as $key => $val) {
+                $this->instances[$key] = $val;
+            }
+        } else {
+            $this->instances[$name] = $value;
+        }
+
+        return $this;
+    }
+
+    /**
+     * Set an instance.
+     *
+     * @param  string  $name
+     * @param mixed $value
+     * @return $this
+     */
+    public function __set($name, $value = null)
+    {
+        return $this->set($name, $value);
+    }
+
+    /**
+     * @param string $name
+     * @return bool
+     */
+    public function __isset($name)
+    {
+        return isset($this->instances[$name]);
     }
 
     /**
@@ -461,7 +535,7 @@ class Service
      */
     public function runSnippet(string $name, array $properties = [])
     {
-        return $this->getElementService()->runSnippet($name, $properties);
+        return $this->get('elementService')->runSnippet($name, $properties);
     }
 
     /**
@@ -472,7 +546,7 @@ class Service
      */
     public function runFileSnippet(string $name, array $scriptProperties)
     {
-        return $this->getElementService()->runFileSnippet($name, $scriptProperties);
+        return $this->get('elementService')->runFileSnippet($name, $scriptProperties);
     }
 
     private function getExceptionHandler()

@@ -82,9 +82,9 @@ return [
         'value' => false,
         'area' => 'zoomx_routing',
     ],
-    'zoomx_short_name_controllers' => [
-        'xtype' => 'combo-boolean',
-        'value' => false,
+    'zoomx_controller_namespace' => [
+        'xtype' => 'textfield',
+        'value' => 'Zoomx\\Controller\\',
         'area' => 'zoomx_routing',
     ],
     /* Smarty */
