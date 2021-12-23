@@ -23,8 +23,10 @@ It's required PHP >= 7.1.
   * [File elements](./README.md#file-elements)
     * [File chunks](./README.md#file-chunks)
     * [File snippets](./README.md#file-snippets)
+    * [File plugins](./README.md#file-plugins)
 * [Service class](./README.md#service-class)
 * [Helpers](./README.md#helpers)
+* [Events](./README.md#events)
 * [System settings](./README.md#system-settings)
   * [Main area](./README.md#main-area) 
   * [Smarty area](./README.md#smarty-area) 
@@ -62,10 +64,11 @@ $router->get('hello.html', function() {
 ```
 Example of redirecting
 ```php
+// Using the modX::sendRedirect method.
 $router->get('product1.html', function() use($modx) {
     $modx->sendRedirect('catalog/product2.html');
 });
-// use the resource identifier
+// Using the resource identifier.
 $router->get('resource.html', function() use($modx) {
     // Specify resource id
     $modx->resourceIdentifier = 2;  
@@ -74,14 +77,25 @@ $router->get('resource.html', function() use($modx) {
     
     return viewx('page.tpl');
 });
+// Using short redirect format $router->redirect($fromUri, $toUri, $statusCode);
+ $router->redirect('resource{id}.html', 'resource{$id}', 301);  // redirects from 'article1.html' to 'article1'
 ```
 
 ### Controllers
-You can use controllers instead of functions.
+You can use controllers instead of functions. Routes that used controllers can be cached. This has a positive effect on productivity. The system setting `zoomx_cache_routes` is responsible for caching routes.
 ```php
 $router->get('users', ['Zoomx\Controllers\UserController', 'index']);
 // The index method can be omitted
 $router->get('users', Zoomx\Controllers\UserController::class);
+```
+For brevity, controllers can be specified without a namespace. The namespace specified in the system setting `zoomx_contoller_namespace` will be added automatically.
+```php
+$router->get('users/{id}', ['UserController', 'show']); // Zoomx\Controllers\UserController::show() will be called. 
+```
+If you specify a slash before the controller name, the namespace will not be added.
+```php
+$router->get('users/{id}', ['\UserController', 'show']); // UserController::show() will be called. 
+$router->get('users/{id}', ['\Custom\Namespace\UserController', 'show']); // Custom\Namespace\UserController::show() will be called. 
 ```
 Controllers must extend the base controller `Zoomx\Controllers\Controller`.
 ```php
@@ -320,6 +334,10 @@ Arguments:
 // To load a specific topic
 {'lang'|lexicon:[]:'es:school:default'} 
 ```
+* markdown - parse content with markdown syntax.
+```php
+{'content'|resource|markdown}
+```
 * modx - parse content with the MODX parser.  
 ```php
 {'[[*pagetitle]] - [[++site_name]]'|modx}
@@ -391,15 +409,18 @@ Arguments:
 ```
 
 ### ZoomX blocks
+
+#### Caution! If caching is enabled do not forget to add the nocache attribute for the block.
+
 * auth - returns a block content only for authenticated users.
 ```php
-{auth}
+{auth nocache}
 content only for authenticated users.
 {/auth}
 ```
 * guest - returns a block content only for guest.
 ```php
-{guest}
+{guest nocache}
 content only for guests.
 {/guest}
 ```
@@ -407,7 +428,7 @@ content only for guests.
 Arguments:  
 \- parser -parser class.
 ```php
-{modx}
+{modx nocache}
 <a href="[[~[[*id]]]]">[[*pagetitle]]</a>
 {/modx}
 ```
@@ -439,7 +460,7 @@ Files from the template directory will be used.
 {'@FILE article.tpl'|chunk}
 ```
 #### File snippets
-Before using, define a directory for storing file snippet and create it if it doesn't exist. 
+Before using, define a directory for storing file snippet (in the "zoomx_file_snippets_path" system setting) and create it if it doesn't exist. 
 ```html
 <!-- Smarty syntax -->
 {run file='some_file_snippet' params=['foo' => 'bar', 'tpl' => '@INLINE <span>{$param}</span>']}
@@ -448,9 +469,60 @@ Before using, define a directory for storing file snippet and create it if it do
 <!-- using $zoomx object -->
 {$zoomx->runFileSnippet('some_file_snippet', ['foo' => 'bar', 'tpl' => 'modx_chunk'])}
 ```
+For convenience, you can specify several paths for snippet files. Use a plugin on the OnZoomxInit event or a bootstrap file (see the file plugins) to do this.
+```php
+zoomx('elementService')-> addSnippetPlugins('path/to/snippets/');
+```
+
+#### File plugins
+File plugin is a class. 
+```php
+<?php
+//  core/elements/plugins/MyPlugin.php
+class MyPlugin extends \Zoomx\Plugin
+{
+    // Add events to invoke and specify their priority.
+    public static $events = [
+        'OnMODXInit' => -101,
+        'OnHandleRequest' => 0,
+    ];
+    public $disabled = false;
+
+    
+    public function OnMODXInit($scriptProperties = [])
+    {
+        // ...
+    }
+    
+    public function OnHandleRequest()
+    {
+        // ...
+    }
+}
+```
+To use file plugins, you need to create file `core/config/elements.php` in which to load the required plugin classes.  
+```php
+<?php
+/** @var Zoomx\Support\ElementService $elementService */
+
+include MODX_CORE_PATH . 'elements/plugins/MyPlugin.php'; 
+
+$plugins = [
+    MyPlugin::class
+];
+
+$elementService->registerPlugins($plugins);
+
+# Add another file snippet path
+$elementService->addSnippetPath('another/path/to/snippets/');
+# Add another Smarty template path
+parserx()->addTemplateDir('another/path/to/chunks/');
+```
+
+MODX components can also use file elements. To do this, you need to create the file `core/components/extra_name/elements.php` and define all the necessary data in it. This file will be loaded on ZoomX initialization. 
 
 ## Service class
-You can get a service class using the `zoomx` function. It contains a number of useful methods.
+You can get an object of the service class calling the `zoomx` function. It contains a number of useful methods.
 - `shouldBeJson` - determines if the given content should be turned into JSON.
 - `isAjax` - checks for the presence of the HTTP header `HTTP_X_REQUESTED_WITH`.
 - `autoloadResource` - resource auto-loading switch. Pass `true` or `false` as an argument. Can be used for virtual pages.
@@ -459,6 +531,15 @@ You can get a service class using the `zoomx` function. It contains a number of 
 - `getChunk` - replacement for the `modX::getChunk()` method. It allows you to use the @FILE and @INLINE bindings in the name of the chunk.
 - `runSnippet` - replacement for the `modX::runSnippet()` method.
 - `runFileSnippet` - executes a file like a snippet.
+
+The object of the service class can be used as a container.
+```php
+zoomx()->set('var', $value);
+// alternative way
+zoomx(['var' => $value]);
+...
+$var = zoomx('var');
+```
 
 ## Helpers
 - abortx() - throws an HttpException with the given data.  
@@ -505,6 +586,7 @@ $router->get('some-url', function() {
   Arguments:  
   \- `(array)` data - array to return to the user.
   \- `(array)` headers - headers.
+  \- `(int)` statusCode - HTTP status code. By-default 200.
 ```php
 $router->get('items/{id}', function($id) {
     if (!$item = zoomx('modx')->getObject('Item', ['id' => (int)$id])) {
@@ -528,12 +610,13 @@ $router->get('articles/{alias}', function($alias) {
 ```
 - zoomx() - returns an instance of the ZoomX service class.  
   Arguments:  
-  \- `(string)` property - property name. A simplified version of the call via the corresponding get'Property' method. Available properties - `modx`, `parser`, `request`, `response`, `elementService`.
+  \- `(string)` property - property name. Available properties - `modx`, `parser`, `request`, `response`, `elementService`, `router`, `cacheManager`.
 ```php
-zoomx('request');  // === zoomx()->getRequest();
+$request = zoomx('request');
+$modx = zoomx('modx'); 
 // get an usual MODX chunk. 
 $content = zoomx()->getChunk('modx.chunk', $params);
-// run an usual MODX snippet.
+// run a usual MODX snippet.
 zoomx()->runSnippet('modx.snippet', $params);
 ```
 
@@ -559,27 +642,44 @@ $router->get('file.pdf',  function () {
 });
 ```
 
+## Events
+- OnZoomxInit - fires after Zoomx initialization. Can be used to initialize required objects (for example Smarty plugins). 
+- OnBeforeRouteProcess - fires before processing the found route.
+  Properties:  
+  \- `(string)` $uri - current uri.
+  \- `(Zoomx\Routing\Router)` $router - router object that contains route variables and route parameters.
+- OnRequestError - fires when you call the `abortx` function or a php error is triggered. Can be used to control site errors (sending a notification to the administrator).
+  Properties:  
+  \- `(string)` $error_type - type of the error or exception object.
+  \- `(string)` $error_code - error code.
+  \- `(string)` $error_pagetitle - string for displaying on the page.
+  \- `(string)` $error_message - detail error description.
+  \- `(Exception|Error)` $e - error object.
+
 
 ## System settings
 #### Main area
 * zoomx_autodetect_content_type - enables automatic detection of the Content-Type in the disabled resource autoloading mode.
 * zoomx_autoload_resource - disables searching and auto-loading the resource. This allows to use fully virtual pages.
 * zoomx_caching - to cache template files. By default, `false`. In development mode it's better to disable it.
-* zoomx_cache_routes - enables route caching. Caution! Turn it on only if controllers are used in routes. By default, `false`.
 * zoomx_enable_pdotools_adapter - replaces the Fenom template engine with the ZoomX one for parsing chunks in the pdoTools snippets.
 * zoomx_enable_exception_handler - enable its own exception handler for strict routing mode. 
 * zoomx_http_method_override - allows to specify the HTTP methods "PATCH", "PUT" and "DELETE" (not supported in HTML forms) by setting a form input element named as "_method" (`<input type="hidden" name="_method" value="PUT">`).
 * zoomx_include_modx - include $modx and $zoomx objects into templates. By default, `true`.
 * zoomx_include_request_info - adds information about the request to the response in API mode.
 * zoomx_parser_class - parser class. It should implement the Zoomx\ParserInterface interface. By default, `ZoomSmarty`.
-* zoomx_routing_mode - routing mode. 0 - disabled (routes are ignored); 1 - mixed (if no route is found, MODX will continue the search); 2 - strict (if no route is found, error 404 will occur). By default, `1`.
 * zoomx_show_error_details - show full error information in the error page.
 * zoomx_file_snippets_path - absolute path to file snippets. You can specify multiple paths by separating them with ";". By default, `{core_path}elements/snippets/`.
 * zoomx_template_dir - full path to [template files](https://www.smarty.net/docs/en/variable.template.dir.tpl). By default, `{core_path}components/zoomx/templates/`.
 * zoomx_theme - site theme. it's a folder name in the template directory. It allows you to manage site themes. By default, `default`.
+* zoomx_template_extension - template file extension. It's used for convenience and for security reasons. By default, "tpl".
 * zoomx_use_zoomx_parser_as_default - use the specified template engine (Smarty by-default) instead of the MODX parser.
+#### Routing area
+* zoomx_cache_routes - enables route caching. Caution! Turn it on only if controllers are used in routes. By default, `false`.
+* zoomx_controller_namespace - allows to specify controller names without a namespace. The specified namespace will be added automatically.
+* zoomx_routing_mode - routing mode. 0 - disabled (routes are ignored); 1 - mixed (if no route is found, MODX will continue the search); 2 - strict (if no route is found, error 404 will occur). By default, `1`.
 #### Smarty area
-* zoomx_default_tpl - it's used to output errors for which a custom template is not defined. By default, `error.tpl`.
+* zoomx_default_tpl - it's used to output errors for which the custom template is not defined. By default, `error.tpl`.
 * zoomx_modx_tag_syntax - allows to use MODX style tags - {'*pagetitle'}, {'++site_name'}, {'~5'} and {'%lexicon'}. A negative impact on performance.
 * zoomx_smarty_cache_dir - path to [cached template files](https://www.smarty.net/docs/en/variable.cache.dir.tpl) relative to `core/cache/`. By default, `zoomx/smarty/cache/`.
 * zoomx_smarty_compile_dir - path to [compiled template files](https://www.smarty.net/docs/en/variable.compile.dir.tpl) relative to `core/cache/`. By default, `zoomx/smarty/compile/`.
@@ -587,7 +687,6 @@ $router->get('file.pdf',  function () {
 * zoomx_smarty_custom_plugin_dir - full path to custom Smarty plugins. By default, `{core_path}components/zoomx/smarty/custom_plugins/`.
 * zoomx_smarty_security_enable - enables the mode for managing Smarty security, which is defined in the security class.
 * zoomx_smarty_security_class - the class in which the [security settings](https://www.smarty.net/docs/en/advanced.features.tpl#advanced.features.security) are defined.
-* zoomx_template_extension - template file extension. It is used for convenience and for security reasons. By default, "tpl".
 
 ## System settings for extending classes
 You can override these settings to replace the base classes with custom ones.  

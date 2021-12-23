@@ -4,6 +4,7 @@ namespace Zoomx\Support;
 
 use modX, xPDO;
 use modElement;
+use modNamespace;
 use SmartyException;
 use ReflectionException;
 
@@ -17,20 +18,46 @@ class ElementService
     protected $snippetRepository;
     /** @var Repository  */
     protected $propertySetRepository;
+    /** @var Repository File plugin objects */
+    protected $pluginRepository;
     /** @var array  */
     protected $snippetPaths = [];
-    /** @var string  */
-    private $snippetCacheKey ='zoomx/snippets';
+    /** @var array  */
+    protected $config;
 
     /**
      * @param modX $modx A reference to the modX object
      */
-    public function __construct(modX $modx)
+    public function __construct(modX $modx, array $config = [])
     {
         $this->modx = $modx;
         $this->chunkRepository       = new Repository();
         $this->snippetRepository     = new Repository();
+        $this->pluginRepository      = new Repository();
         $this->propertySetRepository = new Repository();
+
+        $this->config = $config + [
+                'snippet_cache_key' => 'zoomx/snippets',
+            ];
+        $this->getSnippetPaths();
+        $this->bootstrapElements();
+    }
+
+    private function bootstrapElements()
+    {
+        $loader = static function ($path, $modx, $elementService) {
+            $file = rtrim($path, '/') . '/elements.php';
+            if (is_readable($file)) {
+                require $file;
+            }
+        };
+        # 1. Boot site file elements
+        $loader(MODX_CORE_PATH . MODX_CONFIG_KEY, $this->modx, $this);
+        # 2. Boot Extra's file elements
+        $namespaces = $this->modx->call(modNamespace::class, 'loadCache', [$this->modx]);
+        foreach ($namespaces as $namespace) {
+            $loader($namespace['path'], $this->modx, $this);
+        }
     }
 
     /**
@@ -85,6 +112,10 @@ class ElementService
         $output = '';
         if ($isFile) {
             try {
+                $ext = zoomx('modx')->getOption('zoomx_template_extension', null, 'tpl');
+                if ($ext !== pathinfo($name, PATHINFO_EXTENSION)) {
+                    $name .= ".$ext";
+                }
                 $output = parserx()->parse($name, $properties, $isFile);
             } catch (SmartyException $e) {
                 $this->modx->log(xPDO::LOG_LEVEL_ERROR, $this->modx->lexicon('zoomx_chunk_not_found', ['name' => $name]));
@@ -101,7 +132,7 @@ class ElementService
      * Replacement for modX::runSnippet() method.
      * @param string $name
      * @param array $properties
-     * @param array|int $options
+     * @param array|int $cacheOptions
      * @return mixed|bool
      */
     public function runSnippet(string $name, array $properties = [], $cacheOptions = [])
@@ -115,12 +146,12 @@ class ElementService
             $cacheOptions = [xPDO::OPT_CACHE_EXPIRES => (int)$cacheOptions];
         }
         $cacheOptions = is_array($cacheOptions) ? $cacheOptions : [];
-        $cacheOptions[xPDO::OPT_CACHE_KEY] = $this->snippetCacheKey;
+        $cacheOptions[xPDO::OPT_CACHE_KEY] = $this->config['snippet_cache_key'];
 
         $name = trim($name);
         if (empty($name)) {
             if (getenv("APP_ENV") !== "test") {
-                $this->modx->log(modX::LOG_LEVEL_ERROR, $this->modx->lexicon('zoomx_snippet_not_found', ['name' => $name]));
+                $this->modx->log(MODX_LOG_LEVEL_ERROR, $this->modx->lexicon('zoomx_snippet_not_found', ['name' => $name]));
             }
             return false;
         }
@@ -134,7 +165,7 @@ class ElementService
             $snippet = $this->getElement('modSnippet', $name);
             if (is_null($snippet)) {
                 if (getenv("APP_ENV") !== "test") {
-                    $this->modx->log(modX::LOG_LEVEL_ERROR, $this->modx->lexicon('zoomx_snippet_not_found', ['name' => $name]));
+                    $this->modx->log(MODX_LOG_LEVEL_ERROR, $this->modx->lexicon('zoomx_snippet_not_found', ['name' => $name]));
                 }
                 return false;
             }
@@ -144,7 +175,6 @@ class ElementService
         }
         $this->snippetRepository->add($name, $snippet);
 
-        //TODO: exclude the MODX parser.
         $snippet->_cacheable = false;
         $snippet->_processed = false;
         $snippet->_propertyString = '';
@@ -180,12 +210,12 @@ class ElementService
             $cacheOptions = [xPDO::OPT_CACHE_EXPIRES => (int)$cacheOptions];
         }
         $cacheOptions = is_array($cacheOptions) ? $cacheOptions : [];
-        $cacheOptions[xPDO::OPT_CACHE_KEY] = $this->snippetCacheKey;
+        $cacheOptions[xPDO::OPT_CACHE_KEY] = $this->config['snippet_cache_key'];
 
-        $file = $this->findFile($name);
+        $file = $this->findSnippetFile($name);
         if (null === $file) {
             if (getenv("APP_ENV") !== "test") {
-                $this->modx->log(xPDO::LOG_LEVEL_ERROR, $this->modx->lexicon('zoomx_snippet_file_not_found', ['name' => $name]));
+                $this->modx->log(MODX_LOG_LEVEL_ERROR, $this->modx->lexicon('zoomx_snippet_file_not_found', ['name' => $name]));
             }
             return false;
         }
@@ -218,24 +248,56 @@ class ElementService
         };
     }
 
-    /**
-     * @param string $name
-     * @return string|null
-     */
-    protected function findFile(string $name)
+    protected function getSnippetPaths()
     {
         if (empty($this->snippetPaths)) {
             $paths = $this->modx->getOption('zoomx_file_snippets_path', null, MODX_CORE_PATH . 'elements/snippets/');
             $paths = explode(';', $paths);
             foreach ($paths as $path) {
+                $path = trim($path);
                 if (is_dir($path)) {
                     $this->addSnippetPath($this->sanitizePath(rtrim($path, '/\\') . '/'));
                 }
             }
         }
+        return $this->snippetPaths;
+    }
+
+    /**
+     * @param string $path
+     * @return array
+     */
+    public function addSnippetPath(string $path)
+    {
+        if (!in_array($path, $this->snippetPaths, true)) {
+            $this->snippetPaths[] = trim($path);
+        }
+        return $this->snippetPaths;
+    }
+
+    /**
+     * @param string $path
+     * @return array
+     */
+    public function removeSnippetPath(string $path)
+    {
+        if (in_array($path, $this->snippetPaths, true)) {
+            $this->snippetPaths = array_diff($this->snippetPaths, [$path]);
+        }
+
+        return $this->snippetPaths;
+    }
+
+    /**
+     * @param string $name
+     * @return string|null
+     */
+    protected function findSnippetFile(string $name)
+    {
         $name = $this->sanitizePath(ltrim($name, '/\\'));
         $name = pathinfo($name, PATHINFO_EXTENSION) === 'php' ? $name : "$name.php";
         foreach ($this->snippetPaths as $path) {
+            $path = rtrim($path, '/') . '/';
             if (file_exists($path . $name)) {
                 return $path . $name;
             }
@@ -246,17 +308,8 @@ class ElementService
 
     protected function getCacheKey($name, $hash)
     {
-        return preg_replace('|[^A-Za-z0-9-_]|', '_', ltrim($name, '/\\'))  . '_' . $hash;
-    }
-
-    /**
-     * @param string $path
-     * @return $this
-     */
-    public function addSnippetPath(string $path)
-    {
-        $this->snippetPaths[] = $path;
-        return $this;
+        $ending = isset($this->modx->resource) && $this->modx->resource->id > 0 ? (string)$this->modx->resource->id : '';
+        return preg_replace('|[^A-Za-z0-9-_]|', '_', ltrim($name, '/\\'))  . "{$ending}_$hash";
     }
 
     /**
@@ -376,14 +429,131 @@ class ElementService
     }
 
     /**
-     *
+     * @param array $classes
+     * @return $this
      */
-    public function clearSnippetsCache()
+    public function registerPlugins(array $classes)
     {
-        $cacheManager = $this->modx->getCacheManager();
-        $cacheManager->deleteTree($cacheManager->getCachePath() . 'zoomx/snippets');
+        $events = zoomx()->getCacheManager()->get('eventMap', 'zoomx');
+        if (empty($events)) {
+            $events = [];
+            foreach ($classes as $class) {
+                if (!class_exists($class)) {
+                    $this->modx->log(MODX_LOG_LEVEL_ERROR, "Plugin class \"$class\" not found.");
+                    continue;
+                }
+                foreach ($class::$events as $event => $priority) {
+                    $events[$event][$class] = $priority;
+                }
+            }
+
+            $priorities = $this->getPluginPriorities($events);
+            foreach ($events as $event => $data) {
+                $events[$event] += $priorities[$event] ?? [];
+                asort($events[$event]);
+            }
+            $cache = [];
+            foreach ($events as $event => $plugins) {
+                $eventMap = [];
+                foreach ($plugins as $plugin => $priority) {
+                    if (is_string($plugin)) {
+                        $code = abs(crc32($plugin));
+                        if (null === $this->modx->pluginCache[$code]) {
+                            $this->createVirtualPlugin($code, $plugin);
+                        }
+                        $eventMap[$code] = $plugin;
+                    } else {
+                        $eventMap[$plugin] = $this->modx->eventMap[$event][$plugin];
+                    }
+                }
+                $this->modx->eventMap[$event] = $eventMap;
+                $cache[$event] = $eventMap;
+            }
+            zoomx()->getCacheManager()->set('eventMap', $cache, 'zoomx');
+        } else {
+            $customPlugin = [];
+            foreach ($events as $event => $plugins) {
+                $eventMap = [];
+                foreach ($plugins as $pluginId => $data) {
+                    if (null === $this->modx->pluginCache[$pluginId]) {
+                        $this->createVirtualPlugin($pluginId, $data);
+                        $customPlugin[$pluginId] = true;
+                    }
+                    $eventMap[$pluginId] = $customPlugin[$pluginId] !== null ? $data : $this->modx->eventMap[$event][$pluginId];
+                }
+                $this->modx->eventMap[$event] = $eventMap;
+            }
+        }
+//DEBUGGING
+//echo "<pre>";die(print_r($this->modx->pluginCache,true));
+//echo "<pre>";die(print_r($this->modx->eventMap,true));
+        return $this;
     }
 
+    protected function createVirtualPlugin($code, $name)
+    {
+        $plugin = [
+            'id' => $code,
+            'source' => 1,
+            'property_preprocess' => false,
+            'name' => $name,
+            'description' => '',
+            'editor_type' => 0,
+            'category' => 0,
+            'cache_type' => 0,
+            'locked' => 0,
+            'disabled' => false,
+            'properties' => null,
+            'moduleguid' => '',
+            'static' => 0,
+            'static_file' => '',
+        ];
+        $plugin['plugincode'] = '
+    # Class ' . $name . '
+    /** @var array $scriptProperties */
+    /** @var modX $modx */
+    
+    zoomx("elementService")->handlePlugin($this->name, $modx->event->name, $scriptProperties);
+    ';
+        $this->modx->pluginCache[$code] = $plugin;
+    }
+
+    /**
+     * @param string $name
+     * @param string $event
+     * @param array $properties
+     */
+    public function handlePlugin($name, $event, array $properties = [])
+    {
+        if ($this->pluginRepository->has($name)) {
+            $plugin = $this->pluginRepository->get($name);
+        } else {
+            $plugin = new $name($this->modx);
+            $this->pluginRepository->add($name, $plugin);
+        }
+        if (!$plugin->isDisabled()) {
+            $plugin->$event($properties);
+        }
+    }
+
+    /**
+     * Get or set a config key.
+     * @param string|array $key
+     * @param null|mixed $default
+     * @return mixed|self
+     */
+    public function config($key, $default = null)
+    {
+        if (is_string($key)) {
+            return $this->config[$key] ?? $default;
+        }
+        if (is_array($key)) {
+            foreach ($key as $k => $v) {
+                $this->config[$k] = $v;
+            }
+        }
+        return $this;
+    }
     /**
      * @param modElement $element
      * @param string $name
@@ -435,5 +605,29 @@ class ElementService
         }
 
         return $properties;
+    }
+
+    /**
+     * @param array $events
+     * @return array
+     */
+    private function getPluginPriorities(array $events): array
+    {
+        $query = $this->modx->newQuery('modPluginEvent');
+        $query->setClassAlias('Event');
+        $query->select('Event.pluginid,Event.event,Event.priority');
+        $query->innerJoin('modPlugin', 'Plugin');
+        $query->where([
+            'Plugin.disabled' => 0,
+            'Event.event:IN' => array_keys($events),
+        ]);
+        $query->sortby('Event.event,Event.priority', 'DESC');
+
+        if ($query->prepare() && $query->stmt->execute()) {
+            while ($row = $query->stmt->fetch(\PDO::FETCH_ASSOC)) {
+                $priorities[$row['event']][$row['pluginid']] = $row['priority'];
+            }
+        }
+        return $priorities ?? [];
     }
 }

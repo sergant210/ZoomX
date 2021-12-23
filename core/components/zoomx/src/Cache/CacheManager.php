@@ -125,7 +125,18 @@ class CacheManager
         if (is_string($options)) {
             $options = [xPDO::OPT_CACHE_KEY => $options];
         }
+
         return $this->cacheManager->delete($key, $options);
+    }
+
+    /**
+     * @return $this
+     */
+    public function clearElementsCache()
+    {
+        $this->cacheManager->deleteTree($this->cacheManager->getCachePath() . 'zoomx/snippets');
+        $this->delete('eventMap', 'zoomx');
+        return $this;
     }
 
     /**

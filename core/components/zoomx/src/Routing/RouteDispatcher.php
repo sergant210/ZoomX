@@ -20,13 +20,34 @@ class RouteDispatcher extends FastRouteGroupCountBased
             foreach ($varNames as $varName) {
                 $vars[$varName] = $matches[++$i];
             }
-            $params['params'] = [];
-            $params['params']['redirect'] = $data['redirect'] ?: [];
-            $params['params']['view'] = $data['view'] ?: [];
 
-            return [self::FOUND, $handler, $vars, $params['params']];
+            return [self::FOUND, $handler, $vars, $this->getRouteParameters($data)];
         }
 
         return [self::NOT_FOUND];
+    }
+
+    public function dispatch($httpMethod, $uri)
+    {
+        if (isset($this->staticRouteMap[$httpMethod][$uri])) {
+            $data = $this->staticRouteMap[$httpMethod][$uri];
+
+            return [self::FOUND, $data['handler'], [], $this->getRouteParameters($data)];
+        }
+
+        return parent::dispatch($httpMethod, $uri);
+    }
+
+    protected function getRouteParameters(array $data = [])
+    {
+        $routeParams = [];
+        if (isset($data['redirect'])) {
+            $routeParams['redirect'] = $data['redirect'];
+        }
+        if (isset($data['view'])) {
+            $routeParams['view'] = $data['view'];
+        }
+
+        return $routeParams;
     }
 }

@@ -20,21 +20,41 @@ class Router
     protected $handler;
     /** @var Dispatcher */
     protected $dispatcher;
-    /** @var string  */
-    protected $routeCacheFile = 'route.cache.php';
-    /** @var string  */
-    protected $routeMapFile = 'route.map.php';
     /** @var modX  */
     protected $modx;
-    /** @var string  */
-    protected $controllerNamespace = 'Zoomx\\Controllers\\';
+    /** @var array $config */
+    protected $config = [];
 
     /**
      * @param modX $modx
      */
-    public function __construct(modX $modx)
+    public function __construct(modX $modx, array $config = [])
     {
         $this->modx = $modx;
+        $this->config = $config + [
+                'route_cache_file' => 'route.cache.php',
+                'route_map_file' => 'route.map.php',
+                'controller_namespace' => $modx->getOption('zoomx_controller_namespace', null, 'Zoomx\\Controllers\\'),
+            ];
+    }
+
+    /**
+     * Get or set a config key.
+     * @param string|array $key
+     * @param null|mixed $default
+     * @return mixed|self
+     */
+    public function config($key, $default = null)
+    {
+        if (is_string($key)) {
+            return $this->config[$key] ?? $default;
+        }
+        if (is_array($key)) {
+            foreach ($key as $k => $v) {
+                $this->config[$k] = $v;
+            }
+        }
+        return $this;
     }
 
     /**
@@ -145,7 +165,7 @@ class Router
                     include_once MODX_CORE_PATH . MODX_CONFIG_KEY . '/routes.php';
                 },
                 [
-                    'cacheFile' => $this->getCachePath() . $this->routeCacheFile,
+                    'cacheFile' => $this->getCachePath() . $this->config['route_cache_file'],
                     'cacheDisabled' => !$modx->getOption('zoomx_cache_routes', null, false),
                     'routeCollector' => RouteCollector::class,
                     'dispatcher' => RouteDispatcher::class,
@@ -187,9 +207,14 @@ class Router
         } else {
             return $handler;
         }
-        if (zoomx()->config('zoomx_short_name_controllers', false) && $FQN[0] !== '\\' && strpos($FQN, $this->controllerNamespace) !== 0) {
-            $FQN = $this->controllerNamespace . $FQN;
+        if (
+            !empty($this->config['controller_namespace']) &&
+            $FQN[0] !== '\\' &&
+            strpos($FQN, $this->config['controller_namespace']) !== 0
+        ) {
+            $FQN = $this->config['controller_namespace'] . $FQN;
         }
+
         return [$FQN];
     }
 
@@ -197,10 +222,11 @@ class Router
     {
 
         $routesHash = md5_file(MODX_CORE_PATH . MODX_CONFIG_KEY . '/routes.php');
-        if (file_exists($map = $this->getCachePath() . $this->routeMapFile)) {
+        if (file_exists($map = $this->getCachePath() . $this->config['route_map_file'])) {
             $cachedHash = include $map;
-            if ($cachedHash !== $routesHash) {
-                unlink($this->getCachePath() . $this->routeCacheFile);
+            $file = $this->getCachePath() . $this->config['route_cache_file'];
+            if ($cachedHash !== $routesHash && file_exists($file)) {
+                @unlink($file);
             }
         }
 

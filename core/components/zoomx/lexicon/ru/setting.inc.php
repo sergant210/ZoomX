@@ -55,5 +55,5 @@ $_lang['setting_zoomx_smarty_security_class'] = 'Класс безопаснос
 $_lang['setting_zoomx_smarty_security_class_desc'] = 'Класс, в котором определяются настройки безопасности.';
 $_lang['setting_zoomx_cache_routes'] = 'Кэшировать роуты';
 $_lang['setting_zoomx_cache_routes_desc'] = 'Включает кэширование роутов. Внимание! Включайте только если в роутах используются контроллеры.';
-$_lang['setting_zoomx_short_name_controllers'] = 'Короткие названия контроллеров';
-$_lang['setting_zoomx_short_name_controllers_desc'] = 'Разрешает указывать имена контроллеров без пространства "Zoomx\Contollers". Оно будет добавлено автоматически.';
+$_lang['setting_zoomx_controller_namespace'] = 'Пространство имён контроллеров';
+$_lang['setting_zoomx_short_name_controllers_desc'] = 'Разрешает указывать имена контроллеров без пространства имён. Указанное пространство будет добавлено автоматически.';

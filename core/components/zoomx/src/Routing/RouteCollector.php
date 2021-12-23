@@ -2,7 +2,6 @@
 
 namespace Zoomx\Routing;
 
-
 class RouteCollector extends \FastRoute\RouteCollector
 {
     public function redirect(string $from, string $targetUrl, int $status = 302)
@@ -27,7 +26,7 @@ class RouteCollector extends \FastRoute\RouteCollector
      * @param mixed $handler
      * @param array $routeParams
      */
-    public function addRedirect($httpMethod, $route, $handler, array $routeParams = [])
+    protected function addRedirect($httpMethod, $route, $handler, array $routeParams = [])
     {
         $route = $this->currentGroupPrefix . $route;
         $routeDatas = $this->routeParser->parse($route);

@@ -11,7 +11,7 @@
 function smarty_prefilter_include($source, Smarty_Internal_Template $template)
 {
     return preg_replace_callback('#{include\s+(file\s*=\s*)?[\'"](.+)[\'"](.*)}#iU', function($matches) {
-        /** @var Zoomx\ElementService $elService */
+        /** @var Zoomx\Support\ElementService $elService */
         $elService = zoomx('elementService');
         $file = ltrim($elService->sanitizePath($matches[2]), '/\\');
         $tplExtension = pathinfo($file, PATHINFO_EXTENSION);
