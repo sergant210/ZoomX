@@ -500,7 +500,7 @@ class MyPlugin extends \Zoomx\Plugin
     }
 }
 ```
-To use file plugins, you need to create file `core/config/elements.php` in which to load the required plugin classes.  
+To use file plugins, you need to create file `core/config/elements.php` in which you need to load the required plugin classes.  
 ```php
 <?php
 /** @var Zoomx\Support\ElementService $elementService */
