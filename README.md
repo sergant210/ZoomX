@@ -471,7 +471,7 @@ Before using, define a directory for storing file snippet (in the "zoomx_file_sn
 ```
 For convenience, you can specify several paths for snippet files. Use a plugin on the OnZoomxInit event or a bootstrap file (see the file plugins) to do this.
 ```php
-zoomx('elementService')->addSnippetPlugins('path/to/snippets/');
+zoomx('elementService')->addSnippetPath('path/to/snippets/');
 ```
 
 #### File plugins
