@@ -479,7 +479,7 @@ File plugin is a class.
 ```php
 <?php
 //  core/elements/plugins/MyPlugin.php
-class MyPlugin extends \Zoomx\Plugin
+class MyPlugin extends \Zoomx\Elements\Plugin
 {
     // Add events to invoke and specify their priority.
     public static $events = [
