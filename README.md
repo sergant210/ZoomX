@@ -1,6 +1,6 @@
 (Documentation in the process of creation).
 
-ZoomX offers an alternative way to handling a request and preparing a response. The main goal is not to use elements from the database (as far as it's possible) and use your favorite IDE and versioning support for convinient development. The modRequest class has been refactored and optimized. In addition, a routing mechanism is built in. [FastRoute](https://github.com/nikic/FastRoute) is used for this. Usual DB templates are ignored and can only be used to bind TVs to resources. 
+ZoomX offers an alternative way to handling a request and preparing a response. The main goal is not to use elements from the database (as far as it's possible) and use your favorite IDE and versioning support for convinient development. The modRequest class has been refactored and optimized. In addition, a routing mechanism is built in. [FastRoute](https://github.com/nikic/FastRoute) is used for this. Usual DB templates will be used only if the "zoomx_use_zoomx_parser_as_default" system setting is true. Otherwise, they will be ignored and will only be used to bind TVs to resources. 
 When preparing a response, the standard parser is not used (in the strict router mode). PHP template engines are used instead. [Smarty template engine](https://www.smarty.net) comes out of the box. Because it's installed along with MODX. 
 
 ## IMPORTANT
