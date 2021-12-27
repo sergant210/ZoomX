@@ -169,10 +169,14 @@ class Response extends modResponse implements ResponseInterface
      */
     protected function prepare(array $data = [])
     {
+        $successRequest = $this->statusCode < 400;
         $output = [
-            'success' => $this->statusCode < 400,
-            'data' => array_merge($this->data, $data),
+            'success' => $successRequest,
+            'data' => $successRequest ? array_merge($this->data, $data) : [],
         ];
+        if (!$successRequest) {
+            $output['errors'] = $this->data;
+        }
         if ($this->modx->getOption('zoomx_include_request_info', null, true)) {
             $output = array_merge($output, ['meta' => zoomx()->getRequestInfo()]);
         }

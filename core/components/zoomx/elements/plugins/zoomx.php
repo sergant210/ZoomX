@@ -1,6 +1,6 @@
 <?php
 /** @var modX $modx */
-if ($modx->event->name === 'OnInitCulture') {
+if ($modx->event->name === 'OnMODXInit') {
     $corePath = $modx->getOption('zoomx_core_path', null, MODX_CORE_PATH . 'components/zoomx/');
     include_once $corePath . 'vendor/autoload.php';
     Zoomx\Service::getInstance($modx)->initialize();
@@ -19,7 +19,6 @@ switch ($modx->event->name) {
         $parser->refresh();
         break;
     case 'OnCacheUpdate':
-        $parser->refresh(['cache', 'compiled']);
-        zoomx()->getCacheManager()->clearElementsCache();
+        zoomx()->getCacheManager()->refresh(['zoomx']);
         break;
 }

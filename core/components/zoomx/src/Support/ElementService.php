@@ -434,7 +434,9 @@ class ElementService
      */
     public function registerPlugins(array $classes)
     {
-        $events = zoomx()->getCacheManager()->get('eventMap', 'zoomx');
+        if ($this->modx->getOption('zoomx_cache_event_map', null, true)) {
+            $events = zoomx()->getCacheManager()->get('eventMap', 'zoomx');
+        }
         if (empty($events)) {
             $events = [];
             foreach ($classes as $class) {
@@ -469,7 +471,9 @@ class ElementService
                 $this->modx->eventMap[$event] = $eventMap;
                 $cache[$event] = $eventMap;
             }
-            zoomx()->getCacheManager()->set('eventMap', $cache, 'zoomx');
+            if ($this->modx->getOption('zoomx_cache_event_map', null, true)) {
+                zoomx()->getCacheManager()->set('eventMap', $cache, 'zoomx');
+            }
         } else {
             $customPlugin = [];
             foreach ($events as $event => $plugins) {
@@ -484,9 +488,7 @@ class ElementService
                 $this->modx->eventMap[$event] = $eventMap;
             }
         }
-//DEBUGGING
-//echo "<pre>";die(print_r($this->modx->pluginCache,true));
-//echo "<pre>";die(print_r($this->modx->eventMap,true));
+
         return $this;
     }
 

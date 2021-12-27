@@ -8,6 +8,8 @@ Changelog for ZoomX.
 - Added the ability to use short controller names.
 - Added short redirect format in routes.
 - Added the "OnBeforeRouteProcess" event.
+- Added the "zoomx_cache_event_map" system setting.
+- Added the "zoomx_controller_namespace" system setting.
 - Improved the function jsonx.
 - Fixed a bug in the header name Content-Type for JSON requests.
 - Refactored security functionality.

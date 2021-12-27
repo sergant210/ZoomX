@@ -71,6 +71,11 @@ return [
         'value' => true,
         'area' => 'zoomx_main',
     ],
+    'zoomx_cache_event_map' => [
+        'xtype' => 'combo-boolean',
+        'value' => true,
+        'area' => 'zoomx_main',
+    ],
     /* Routing */
     'zoomx_routing_mode' => [
         'xtype' => 'numberfield',

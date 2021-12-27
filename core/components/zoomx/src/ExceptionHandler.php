@@ -10,11 +10,9 @@ use Zoomx\Exceptions\HttpException;
 
 class ExceptionHandler
 {
-    protected $requestHandler;
     protected $modx;
 
-    public function __construct(modX $modx, RequestHandler $requestHandler) {
-        $this->requestHandler = $requestHandler;
+    public function __construct(modX $modx) {
         $this->modx = $modx;
     }
 
@@ -33,10 +31,11 @@ class ExceptionHandler
         ];
         if ($e instanceof Error || $code >= 500) {
             $errorType = get_class($e);
-            $this->modx->log(modX::LOG_LEVEL_ERROR, "[$errorType] " . $e->getMessage(), '', '', $e->getFile(), $e->getLine());
+            $this->modx->log(MODX_LOG_LEVEL_ERROR, "[$errorType] " . $e->getMessage(), '', '', $e->getFile(), $e->getLine());
         }
+
         $error = new ErrorData($data);
-        $this->requestHandler->sendErrorPage($error);
+        $this->getRequestHandler()->sendErrorPage($error);
     }
 
     private function filterPath($data, $basePath)
@@ -50,5 +49,10 @@ class ExceptionHandler
             }
         }
         return $data;
+    }
+
+    protected function getRequestHandler()
+    {
+        return \zoomx('request')->getRequestHandler();
     }
 }

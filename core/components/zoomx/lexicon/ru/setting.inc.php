@@ -57,3 +57,5 @@ $_lang['setting_zoomx_cache_routes'] = 'Кэшировать роуты';
 $_lang['setting_zoomx_cache_routes_desc'] = 'Включает кэширование роутов. Внимание! Включайте только если в роутах используются контроллеры.';
 $_lang['setting_zoomx_controller_namespace'] = 'Пространство имён контроллеров';
 $_lang['setting_zoomx_short_name_controllers_desc'] = 'Разрешает указывать имена контроллеров без пространства имён. Указанное пространство будет добавлено автоматически.';
+$_lang['setting_zoomx_cache_event_map'] = 'Кэшировать карту событий';
+$_lang['setting_zoomx_cache_event_map_desc'] = 'В целях оптимизации кэширует карту событий файловых плагинов. При разработке лучше отключить.';

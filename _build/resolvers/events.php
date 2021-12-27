@@ -11,6 +11,10 @@ if ($transport->xpdo) {
                 $eventInit->set('name', 'OnZoomxInit');
                 $eventInit->save();
             }
+            /*if (($plugin = $modx->getObject('modPlugin', ['name' => 'ZoomX'])) && ($modxInitEvent = $modx->getObject('modPluginEvent', ['pluginid' => $plugin->id, 'event' => 'OnMODXInit']))) {
+                // @var modPluginEvent $modxInitEvent
+                $modxInitEvent->remove();
+            }*/
         case xPDOTransport::ACTION_INSTALL:
             $query = $modx->newQuery('modEvent');
             $query->select('name, groupname');

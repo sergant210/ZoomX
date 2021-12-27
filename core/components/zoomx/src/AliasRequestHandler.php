@@ -2,15 +2,11 @@
 namespace Zoomx;
 
 use Error;
-use Exception;
-use FastRoute\Dispatcher;
 use modResource;
 use modResponse;
 use Zoomx\DTO\Error as ErrorData;
 use Zoomx\Exceptions\HttpException;
 use Zoomx\Exceptions\NotFoundHttpException;
-
-use function FastRoute\cachedDispatcher;
 
 class AliasRequestHandler extends RequestHandler
 {
@@ -50,7 +46,7 @@ class AliasRequestHandler extends RequestHandler
      */
     public function processRouting($uri)
     {
-        $output = zoomx('router')->process($uri);
+        $output = zoomx('router')->dispatch($uri);
 
         $this->handleOutput($output);
     }
@@ -172,6 +168,8 @@ class AliasRequestHandler extends RequestHandler
 
     /**
      * @param ErrorData|array|null $error
+     * @throws \ReflectionException
+     * @throws \SmartyException
      */
     public function sendErrorPage($error = null)
     {

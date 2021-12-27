@@ -662,6 +662,7 @@ $router->get('file.pdf',  function () {
 * zoomx_autodetect_content_type - enables automatic detection of the Content-Type in the disabled resource autoloading mode.
 * zoomx_autoload_resource - disables searching and auto-loading the resource. This allows to use fully virtual pages.
 * zoomx_caching - to cache template files. By default, `false`. In development mode it's better to disable it.
+* zoomx_cache_event_map - to cache the event map of file plugins for optimization purposes. In developer mode it is better to disable.
 * zoomx_enable_pdotools_adapter - replaces the Fenom template engine with the ZoomX one for parsing chunks in the pdoTools snippets.
 * zoomx_enable_exception_handler - enable its own exception handler for strict routing mode. 
 * zoomx_http_method_override - allows to specify the HTTP methods "PATCH", "PUT" and "DELETE" (not supported in HTML forms) by setting a form input element named as "_method" (`<input type="hidden" name="_method" value="PUT">`).
@@ -672,7 +673,6 @@ $router->get('file.pdf',  function () {
 * zoomx_file_snippets_path - absolute path to file snippets. You can specify multiple paths by separating them with ";". By default, `{core_path}elements/snippets/`.
 * zoomx_template_dir - full path to [template files](https://www.smarty.net/docs/en/variable.template.dir.tpl). By default, `{core_path}components/zoomx/templates/`.
 * zoomx_theme - site theme. it's a folder name in the template directory. It allows you to manage site themes. By default, `default`.
-* zoomx_template_extension - template file extension. It's used for convenience and for security reasons. By default, "tpl".
 * zoomx_use_zoomx_parser_as_default - use the specified template engine (Smarty by-default) instead of the MODX parser.
 #### Routing area
 * zoomx_cache_routes - enables route caching. Caution! Turn it on only if controllers are used in routes. By default, `false`.
@@ -687,19 +687,24 @@ $router->get('file.pdf',  function () {
 * zoomx_smarty_custom_plugin_dir - full path to custom Smarty plugins. By default, `{core_path}components/zoomx/smarty/custom_plugins/`.
 * zoomx_smarty_security_enable - enables the mode for managing Smarty security, which is defined in the security class.
 * zoomx_smarty_security_class - the class in which the [security settings](https://www.smarty.net/docs/en/advanced.features.tpl#advanced.features.security) are defined.
+* zoomx_template_extension - template file extension. It's used for convenience and for security reasons. By default, "tpl".
 
 ## System settings for extending classes
 You can override these settings to replace the base classes with custom ones.  
  Setting name | Default   
  ------------- |-------------  
- zoomx_parser_class   | ZoomSmarty   
- zoomx_response_class | ZoomResponse   
- zoomx_request_class | ZoomRequest   
- zoomx_json_request_class | Zoomx\Json\Request   
- zoomx_json_response_class | Zoomx\Json\Response   
- zoomx_alias_request_handler_class | Zoomx\AliasRequestHandler   
- zoomx_id_request_handler_class | Zoomx\IdRequestHandler   
- zoomx_file_response_class | Zoomx\FileResponse   
- zoomx_view_class | Zoomx\View   
- zoomx_element_service_class | Zoomx\Support\ElementService   
- zoomx_exception_handler_class | Zoomx\ExceptionHandler   
+zoomx_alias_request_handler_class | Zoomx\AliasRequestHandler
+zoomx_cache_manager_class | Zoomx\Cache\CacheManager  
+zoomx_content_type_detector_class | Zoomx\ContentTypeDetector
+zoomx_element_service_class | Zoomx\Support\ElementService   
+zoomx_exception_handler_class | Zoomx\ExceptionHandler   
+zoomx_file_response_class | Zoomx\FileResponse   
+zoomx_id_request_handler_class | Zoomx\IdRequestHandler   
+zoomx_json_request_class | Zoomx\Json\Request   
+zoomx_json_response_class | Zoomx\Json\Response   
+zoomx_parser_class   | ZoomSmarty   
+zoomx_redirect_response_class | Zoomx\RedirectResponse
+zoomx_response_class | ZoomResponse   
+zoomx_request_class | ZoomRequest  
+zoomx_router_class | Zoomx\Routing\Router  
+zoomx_view_class | Zoomx\View   

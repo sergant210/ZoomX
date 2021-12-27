@@ -140,6 +140,23 @@ class CacheManager
     }
 
     /**
+     * @param array $partition
+     * @return bool
+     * @throws \ReflectionException
+     */
+    public function refresh(array $partition = [])
+    {
+        if ($partition === ['zoomx']) {
+            parserx()->refresh(['cache', 'compiled']);
+            $this->clearElementsCache();
+            $this->delete('route', 'zoomx');
+
+            return true;
+        }
+
+        return $this->cacheManager->refresh($partition);
+    }
+    /**
      * Handle dynamic calls.
      * @param string $method
      * @param array $parameters

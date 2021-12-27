@@ -4,7 +4,6 @@ namespace Zoomx\Routing;
 
 
 use FastRoute\Dispatcher;
-use Zoomx\Request;
 use Zoomx\Service;
 use modX;
 
@@ -118,18 +117,26 @@ class Router
     }
 
     /**
+     * @deprecated
+     * @param string $uri
+     * @return false|mixed|null
+     */
+    public function proccess(string $uri)
+    {
+        return $this->dispatch($uri);
+    }
+    /**
      * Precess the current route.
      * @param string $uri
      * @return false|mixed|null
      */
-    public function process(string $uri)
+    public function dispatch(string $uri)
     {
         $output = null;
-        $httpMethod = $this->modx->request->method;
-        $routeInfo = $this->getDispatcher()->dispatch($httpMethod, $uri);
+        $routeInfo = $this->getDispatcher()->dispatch($this->modx->request->method, $uri);
         switch ($routeInfo[0]) {
             case Dispatcher::NOT_FOUND:
-                if (zoomx()->getRoutingMode() === Service::ROUTING_STRICT) {
+                if (zoomx()->getRoutingMode() === Service::ROUTING_STRICT || zoomx()->shouldBeJson()) {
                     abortx(404);
                 }
                 break;

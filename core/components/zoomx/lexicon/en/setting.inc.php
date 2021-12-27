@@ -59,3 +59,5 @@ $_lang['setting_zoomx_short_name_controllers'] = 'Short names of controllers';
 $_lang['setting_zoomx_short_name_controllers_desc'] = 'Allows you to specify the names of controllers without the namespace "Zoomx\Controllers". It will be added automatically.';
 $_lang['setting_zoomx_controller_namespace'] = 'Controller namespace';
 $_lang['setting_zoomx_short_name_controllers_desc'] = 'Allows to specify controller names without a namespace. The specified namespace will be added automatically.';
+$_lang['setting_zoomx_cache_event_map'] = 'Cache the event map';
+$_lang['setting_zoomx_cache_event_map_desc'] = 'For optimization purposes, it caches the event map of file plugins. When developing, it is better to disable.';

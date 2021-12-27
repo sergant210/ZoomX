@@ -2,7 +2,6 @@
 
 namespace Zoomx;
 
-
 use modParser;
 use modX;
 use modRequest;
@@ -12,7 +11,6 @@ use Zoomx\Contracts\ParserInterface;
 use Zoomx\Support\ContentTypeDetector;
 use Zoomx\Support\ElementService;
 use Zoomx\Support\Macroable;
-
 
 class Service
 {
@@ -243,7 +241,7 @@ class Service
      */
     public function getRedirectResponse($url, $status = 302, array $headers = [])
     {
-        $class = $this->modx->getOption('zoomx_file_response_class', null, RedirectResponse::class);
+        $class = $this->modx->getOption('zoomx_redirect_response_class', null, RedirectResponse::class);
 
         return $this->getResponse($class, $url, $status, $headers);
     }
@@ -553,7 +551,7 @@ class Service
     {
         $exceptionHandlerClass = $this->modx->getOption('zoomx_exception_handler_class', null, ExceptionHandler::class, true);
 
-        return new $exceptionHandlerClass($this->modx, $this->getRequest()->getRequestHandler());
+        return new $exceptionHandlerClass($this->modx);
     }
 
     private function loadExceptions()
@@ -572,6 +570,7 @@ class Service
 
     private function preparePdoToolsAdapter(): void
     {
+        $corePath = $this->modx->getOption('zoomx_core_path', null, MODX_CORE_PATH . 'components/zoomx/');
         if (!class_exists('pdoTools')) {
             $class = $this->modx->getOption('pdoTools.class', null, 'pdotools.pdotools', true);
             $path = $this->modx->getOption('pdotools_class_path', null, MODX_CORE_PATH . 'components/pdotools/model/', true);
@@ -584,17 +583,17 @@ class Service
         }
         if (class_exists('pdoTools')) {
             $this->modx->setOption('pdoTools.class', 'pdoToolsZoomx');
-            $this->modx->setOption('pdotools_class_path', MODX_CORE_PATH . 'components/zoomx/pdotools/');
+            $this->modx->setOption('pdotools_class_path', $corePath . 'pdotools/');
         } else {
             $this->modx->log(\modX::LOG_LEVEL_ERROR, '[pdoToolsZoomx] pdoTools class is not found.');
         }
         if (class_exists('pdoFetch')) {
             $this->modx->setOption('pdoFetch.class', 'pdoFetchZoomx');
-            $this->modx->setOption('pdofetch_class_path', MODX_CORE_PATH . 'components/zoomx/pdotools/');
+            $this->modx->setOption('pdofetch_class_path', $corePath . 'pdotools/');
         } else {
             $this->modx->log(\modX::LOG_LEVEL_ERROR, '[pdoFetchZoomx] pdoFetch class is not found.');
         }
-        include MODX_CORE_PATH . 'components/zoomx/pdotools/pdotoolsadapter.php';
+        include $corePath . 'pdotools/pdotoolsadapter.php';
     }
 
     private function __clone() {}
