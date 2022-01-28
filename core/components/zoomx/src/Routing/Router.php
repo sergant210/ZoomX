@@ -210,7 +210,7 @@ class Router
         if (is_string($handler)) {
             $FQN = $handler;
         } elseif (is_array($handler)) {
-            $FQN = $handler[0];
+            [$FQN, $method] = $handler;
         } else {
             return $handler;
         }
@@ -222,7 +222,7 @@ class Router
             $FQN = $this->config['controller_namespace'] . $FQN;
         }
 
-        return [$FQN];
+        return [$FQN, $method];
     }
 
     private function validateCache()

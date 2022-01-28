@@ -15,6 +15,12 @@ if ($transport->xpdo) {
                     $modx->log(modX::LOG_LEVEL_ERROR, 'Can\'t update the system setting "zoomx_routes_mode".');
                 }
             }
+            if ($setting = $modx->getObject('modSystemSetting', ['key' => 'zoomx_controller_namespace'])) {
+                $setting->set('value', 'Zoomx\\Controllers\\');
+                if (!$setting->save()) {
+                    $modx->log(modX::LOG_LEVEL_ERROR, 'Can\'t update the system setting "zoomx_controller_namespace".');
+                }
+            }
             break;
         case xPDOTransport::ACTION_UNINSTALL:
             break;

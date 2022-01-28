@@ -420,25 +420,21 @@ class Service
      */
     public function getLoader()
     {
-        if (!$loader = include (__DIR__.'/../vendor/autoload.php')) {
+        if (!$loader = include __DIR__ . '/../vendor/autoload.php') {
             $this->abort(500, 'Composer is not set.');
         }
 
         return $loader;
-
     }
 
     /**
      * @param string $className
-     * @return false
+     * @return bool
      * @throws \ReflectionException
      */
     protected function checkImplements($className, $interface)
     {
-        $class = new \ReflectionClass( $className );
-        if( false === $class ) {
-            return false;
-        }
+        $class = new \ReflectionClass($className);
         $interfaces = $class->getInterfaceNames();
 
         return is_array($interfaces) && in_array($interface, $interfaces);
@@ -529,22 +525,24 @@ class Service
      * Replacement for modX::snippet() method.
      * @param string $name
      * @param array $properties
+     * @param array|int $cacheOptions Cache options or cache lifetime in seconds
      * @return mixed
      */
-    public function runSnippet(string $name, array $properties = [])
+    public function runSnippet(string $name, array $properties = [], $cacheOptions = [])
     {
-        return $this->get('elementService')->runSnippet($name, $properties);
+        return $this->get('elementService')->runSnippet($name, $properties, $cacheOptions);
     }
 
     /**
      * Executes a file like a snippet.
      * @param string $name
      * @param array $scriptProperties
+     * @param array|int $cacheOptions Cache options or cache lifetime in seconds.
      * @return mixed
      */
-    public function runFileSnippet(string $name, array $scriptProperties)
+    public function runFileSnippet(string $name, array $scriptProperties, $cacheOptions = [])
     {
-        return $this->get('elementService')->runFileSnippet($name, $scriptProperties);
+        return $this->get('elementService')->runFileSnippet($name, $scriptProperties, $cacheOptions);
     }
 
     private function getExceptionHandler()

@@ -1,5 +1,12 @@
 Changelog for ZoomX.
 
+3.4.1-pl
+==============
+- Fixed the "runSnippet" and the "runFileSnippet" methods of the main service class.
+- Fixed creation of Smarty directories.
+- Fixed a bug with the controller method disappearing.
+- Fixed a bug with controller's namespace.
+
 3.4.0-pl
 ==============
 - Added support for file plugins.

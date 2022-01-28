@@ -33,6 +33,7 @@ class Smarty extends BaseSmarty implements Contracts\ParserInterface
         $this->cache_dir = $cachePath . ltrim($modx->getOption('zoomx_smarty_cache_dir', null, 'zoomx/smarty/cache/'), '/');
         $this->compile_dir = $cachePath . ltrim($modx->getOption('zoomx_smarty_compile_dir', null, 'zoomx/smarty/compiled/'), '/');
         $this->setConfigDir($modx->getOption('zoomx_smarty_config_dir', null, $corePath . 'config/'));
+        $this->createDir([$this->cache_dir, $this->compile_dir]);
 
         // Set caching mode
         $this->caching = $modx->getOption('cache_resource', null, true)
@@ -73,12 +74,22 @@ class Smarty extends BaseSmarty implements Contracts\ParserInterface
         $this->registerDefaultPluginHandler([$this, 'loadDefaultPluginHandler']);
     }
 
+    protected function createDir($dir)
+    {
+        $paths = (array)$dir;
+        foreach ($paths as $path) {
+            if (!is_dir($path)) {
+                $this->modx->getCacheManager()->writeTree($path);
+            }
+        }
+    }
+
     protected function getSecurityClass($corePath)
     {
         if ($securityClass = $this->modx->getOption('zoomx_smarty_security_class', null, '')) {
             $FQN = $corePath . "smarty/security/$securityClass.php";
             if (!file_exists($FQN)) {
-                $this->modx->log(modX::LOG_LEVEL_ERROR, "Class $securityClass not found.");
+                $this->modx->log(MODX_LOG_LEVEL_ERROR, "Class $securityClass not found.");
             } else {
                 include $FQN;
             }

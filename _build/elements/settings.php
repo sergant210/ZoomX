@@ -89,7 +89,7 @@ return [
     ],
     'zoomx_controller_namespace' => [
         'xtype' => 'textfield',
-        'value' => 'Zoomx\\Controller\\',
+        'value' => 'Zoomx\\Controllers\\',
         'area' => 'zoomx_routing',
     ],
     /* Smarty */
