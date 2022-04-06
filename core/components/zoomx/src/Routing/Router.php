@@ -169,7 +169,7 @@ class Router
             }
             $this->dispatcher = cachedDispatcher(
                 static function (RouteCollector $router) use ($modx) {
-                    include_once MODX_CORE_PATH . MODX_CONFIG_KEY . '/routes.php';
+                    include_once zoomx()->getConfigPath() . 'routes.php';
                 },
                 [
                     'cacheFile' => $this->getCachePath() . $this->config['route_cache_file'],

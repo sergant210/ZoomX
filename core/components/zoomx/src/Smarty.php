@@ -36,8 +36,8 @@ class Smarty extends BaseSmarty implements Contracts\ParserInterface
         $this->createDir([$this->cache_dir, $this->compile_dir]);
 
         // Set caching mode
-        $this->caching = $modx->getOption('cache_resource', null, true)
-            ? $modx->getOption('zoomx_caching', null, Smarty::CACHING_LIFETIME_CURRENT)
+        $this->caching = $modx->getOption('zoomx_caching', null, true)
+            ? BaseSmarty::CACHING_LIFETIME_SAVED
             : BaseSmarty::CACHING_OFF;
         $this->cache_lifetime = (int)$modx->getOption('cache_resource_expires', null, 0);
         $this->cache_lifetime = $this->cache_lifetime > 0 ? $this->cache_lifetime : -1;
@@ -174,8 +174,11 @@ class Smarty extends BaseSmarty implements Contracts\ParserInterface
                 $baseElement = $resource->getOne('Template');
                 $resource->_content = isset($baseElement) ? $baseElement->getContent() : $resource->getContent();
             }
+            $caching = $this->caching && $resource->cacheable && $resource->id > 0;
+            $cacheId = "doc_" . $resource->id;
+
             if (!empty($resource->_content)) {
-                $content = $this->parse($resource->_content);
+                $content = $this->parse($resource->_content, [], false, [$caching, $cacheId]);
             }
             $resource->setProcessed(true);
         } else {
@@ -187,19 +190,20 @@ class Smarty extends BaseSmarty implements Contracts\ParserInterface
     /**
      * {@inheritDoc}
      */
-    public function parse($string, array $properties = [], $isFile = false)
+    public function parse($string, array $properties = [], $isFile = false, array $options = [])
     {
         if (empty($string)) {
             return '';
         }
+        [$caching, $cache_id] = $options;
         if (!$isFile) {
             $string = 'string:' . $string;
         }
-        $tmpl = $this->createTemplate($string);
+        $tmpl = $this->createTemplate($string, $cache_id);
         if (!empty($properties)) {
             $tmpl->assign($properties);
         }
-        $tmpl->caching = BaseSmarty::CACHING_OFF;
+        $tmpl->caching = $caching;  // BaseSmarty::CACHING_OFF;
 
         return $tmpl->fetch();
     }

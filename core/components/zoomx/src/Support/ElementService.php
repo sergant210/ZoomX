@@ -8,7 +8,7 @@ use modNamespace;
 use SmartyException;
 use ReflectionException;
 
-class ElementService
+final class ElementService
 {
     /** @var modX $modx A reference to the modX instance */
     protected $modx;
@@ -38,8 +38,9 @@ class ElementService
 
         $this->config = $config + [
                 'snippet_cache_key' => 'zoomx/snippets',
+                'chunk_cache_key' => 'zoomx/chunks',
             ];
-        $this->getSnippetPaths();
+        $this->processSnippetPaths();
         $this->bootstrapElements();
     }
 
@@ -52,7 +53,7 @@ class ElementService
             }
         };
         # 1. Boot site file elements
-        $loader(MODX_CORE_PATH . MODX_CONFIG_KEY, $this->modx, $this);
+        $loader(zoomx()->getConfigPath(), $this->modx, $this);
         # 2. Boot Extra's file elements
         $namespaces = $this->modx->call(modNamespace::class, 'loadCache', [$this->modx]);
         foreach ($namespaces as $namespace) {
@@ -64,11 +65,23 @@ class ElementService
      * Replacement for modX::getChunk() method.
      * @param string $name
      * @param array $properties
+     * @param array|int $cacheOptions
      * @return string
-     * @throws SmartyException|ReflectionException
+     * @throws \ReflectionException
      */
-    public function getChunk(string $name, array $properties = [])
+    public function getChunk(string $name, array $properties = [], $cacheOptions = [])
     {
+        $cache = !empty($cacheOptions) || $cacheOptions === 0;
+        if ($cache) {
+            $hash = substr(md5($name . json_encode($properties)), 0, 8);
+            $cacheKey = $this->getCacheKey($name, $hash);
+
+            if (is_numeric($cacheOptions)) {
+                $cacheOptions = [xPDO::OPT_CACHE_EXPIRES => (int)$cacheOptions];
+            }
+            $cacheOptions = is_array($cacheOptions) ? $cacheOptions : [];
+            $cacheOptions[xPDO::OPT_CACHE_KEY] = $this->config['chunk_cache_key'];
+        }
         $name = trim($name);
         if (empty($name)) {
             return false;
@@ -102,30 +115,41 @@ class ElementService
                     }
                     return false;
                 }
-                if ($chunk->id > 0 && !empty($propertySet)) {
-                    $chunk->set('name', $propertySet ? "{$name}@{$propertySet}" : $name);
-                }
+            }
+            if ($chunk->id > 0 && !empty($propertySet)) {
+                $chunk->set('name', $propertySet ? "{$name}@{$propertySet}" : $name);
             }
             $properties = $this->getElementProperties($chunk, $properties);
             $content = $chunk->get('content');
         }
-        $output = '';
+
+        if ($cache) {
+            $cacheManager = zoomx()->getCacheManager();
+            $output = $cacheManager->get($cacheKey, $cacheOptions);
+            if (null !== $output) {
+                return $output;
+            }
+        }
+
         if ($isFile) {
             try {
-                $ext = zoomx('modx')->getOption('zoomx_template_extension', null, 'tpl');
-                if ($ext !== pathinfo($name, PATHINFO_EXTENSION)) {
-                    $name .= ".$ext";
-                }
+                $name = $this->getValidFilename($name);
                 $output = parserx()->parse($name, $properties, $isFile);
             } catch (SmartyException $e) {
-                $this->modx->log(xPDO::LOG_LEVEL_ERROR, $this->modx->lexicon('zoomx_chunk_not_found', ['name' => $name]));
+                if (getenv("APP_ENV") !== "test") {
+                    $this->modx->log(xPDO::LOG_LEVEL_ERROR, $this->modx->lexicon('zoomx_chunk_not_found', ['name' => $name]));
+                }
             }
         } else {
             $this->chunkRepository->add($name, $chunk);
             $output = parserx()->parse($content, $properties);
         }
 
-        return $output;
+        if ($cache) {
+            $cacheManager->set($cacheKey, $output, $cacheOptions);
+        }
+
+        return $output ?? '';
     }
 
     /**
@@ -139,15 +163,15 @@ class ElementService
     {
         $cache = !empty($cacheOptions) || $cacheOptions === 0;
         if ($cache) {
-            $hash = substr(md5(json_encode($properties)), 0, 8);
+            $hash = substr(md5($name . json_encode($properties)), 0, 8);
             $cacheKey = $this->getCacheKey($name, $hash);
-        }
-        if (is_numeric($cacheOptions)) {
-            $cacheOptions = [xPDO::OPT_CACHE_EXPIRES => (int)$cacheOptions];
-        }
-        $cacheOptions = is_array($cacheOptions) ? $cacheOptions : [];
-        $cacheOptions[xPDO::OPT_CACHE_KEY] = $this->config['snippet_cache_key'];
 
+            if (is_numeric($cacheOptions)) {
+                $cacheOptions = [xPDO::OPT_CACHE_EXPIRES => (int)$cacheOptions];
+            }
+            $cacheOptions = is_array($cacheOptions) ? $cacheOptions : [];
+            $cacheOptions[xPDO::OPT_CACHE_KEY] = $this->config['snippet_cache_key'];
+        }
         $name = trim($name);
         if (empty($name)) {
             if (getenv("APP_ENV") !== "test") {
@@ -169,9 +193,9 @@ class ElementService
                 }
                 return false;
             }
-            if ($snippet->id && !empty($propertySet)) {
-                $snippet->set('name', "$name@$propertySet");
-            }
+        }
+        if ($snippet->id && !empty($propertySet)) {
+            $snippet->set('name', "$name@$propertySet");
         }
         $this->snippetRepository->add($name, $snippet);
 
@@ -180,7 +204,7 @@ class ElementService
         $snippet->_propertyString = '';
         $snippet->_tag = '';
 
-        if ($cache && !empty($cacheOptions)) {
+        if ($cache) {
             $cacheManager = zoomx()->getCacheManager();
             $output = $cacheManager->remember($cacheKey, $cacheOptions, function () use ($snippet, $properties) {
                 return $snippet->process($properties);
@@ -203,15 +227,15 @@ class ElementService
     {
         $cache = !empty($cacheOptions) || $cacheOptions === 0;
         if ($cache) {
-            $hash = substr(md5(json_encode($properties)), 0, 8);
+            $hash = substr(md5($name . json_encode($properties)), 0, 8);
             $cacheKey = $this->getCacheKey($name, $hash);
-        }
-        if (is_numeric($cacheOptions)) {
-            $cacheOptions = [xPDO::OPT_CACHE_EXPIRES => (int)$cacheOptions];
-        }
-        $cacheOptions = is_array($cacheOptions) ? $cacheOptions : [];
-        $cacheOptions[xPDO::OPT_CACHE_KEY] = $this->config['snippet_cache_key'];
 
+            if (is_numeric($cacheOptions)) {
+                $cacheOptions = [xPDO::OPT_CACHE_EXPIRES => (int)$cacheOptions];
+            }
+            $cacheOptions = is_array($cacheOptions) ? $cacheOptions : [];
+            $cacheOptions[xPDO::OPT_CACHE_KEY] = $this->config['snippet_cache_key'];
+        }
         $file = $this->findSnippetFile($name);
         if (null === $file) {
             if (getenv("APP_ENV") !== "test") {
@@ -220,7 +244,7 @@ class ElementService
             return false;
         }
         $func = $this->getFunction();
-        if ($cache && !empty($cacheOptions)) {
+        if ($cache) {
             $cacheManager = zoomx()->getCacheManager();
             $output = $cacheManager->remember($cacheKey, $cacheOptions, function () use ($func, $file, $properties) {
                 return $func($file, $properties, $this->modx);
@@ -248,7 +272,7 @@ class ElementService
         };
     }
 
-    protected function getSnippetPaths()
+    protected function processSnippetPaths()
     {
         if (empty($this->snippetPaths)) {
             $paths = $this->modx->getOption('zoomx_file_snippets_path', null, MODX_CORE_PATH . 'elements/snippets/');
@@ -260,6 +284,13 @@ class ElementService
                 }
             }
         }
+    }
+
+    /**
+     * @return array
+     */
+    public function getSnippetPath()
+    {
         return $this->snippetPaths;
     }
 
@@ -308,8 +339,19 @@ class ElementService
 
     protected function getCacheKey($name, $hash)
     {
-        $ending = isset($this->modx->resource) && $this->modx->resource->id > 0 ? (string)$this->modx->resource->id : '';
-        return preg_replace('|[^A-Za-z0-9-_]|', '_', ltrim($name, '/\\'))  . "{$ending}_$hash";
+        $ending = isset($this->modx->resource) && $this->modx->resource->id > 0 ? '_' . (string)$this->modx->resource->id : '';
+        if (preg_match('#^@([A-Z]+)#', $name, $matches)) {
+            switch ($matches[1]) {
+            	case 'INLINE':
+                    $name = 'inline';
+            		break;
+                case 'FILE':
+                    $file = ltrim(substr($name, strlen($matches[1]) + 1), ' :');
+                    $name = $this->getValidFilename(basename($file));
+                    break;
+            }
+        }
+        return preg_replace('|[^A-Za-z0-9-_.]|', '_', ltrim($name, '/\\'))  . "{$ending}_$hash";
     }
 
     /**
@@ -432,8 +474,11 @@ class ElementService
      * @param array $classes
      * @return $this
      */
-    public function registerPlugins(array $classes)
+    public function registerPlugins(array $classes = [])
     {
+        if (empty($classes)) {
+            return $this;
+        }
         if ($this->modx->getOption('zoomx_cache_event_map', null, true)) {
             $events = zoomx()->getCacheManager()->get('eventMap', 'zoomx');
         }
@@ -441,7 +486,9 @@ class ElementService
             $events = [];
             foreach ($classes as $class) {
                 if (!class_exists($class)) {
-                    $this->modx->log(MODX_LOG_LEVEL_ERROR, "Plugin class \"$class\" not found.");
+                    if (getenv("APP_ENV") !== "test") {
+                        $this->modx->log(MODX_LOG_LEVEL_ERROR, "Plugin class \"$class\" not found.");
+                    }
                     continue;
                 }
                 foreach ($class::$events as $event => $priority) {
@@ -449,7 +496,7 @@ class ElementService
                 }
             }
 
-            $priorities = $this->getPluginPriorities($events);
+            $priorities = !empty($events) ? $this->getPluginPriorities($events) : [];
             foreach ($events as $event => $data) {
                 $events[$event] += $priorities[$event] ?? [];
                 asort($events[$event]);
@@ -631,5 +678,19 @@ class ElementService
             }
         }
         return $priorities ?? [];
+    }
+
+    /**
+     * @param $name
+     * @return mixed|string
+     */
+    private function getValidFilename($name)
+    {
+        $ext = zoomx('modx')->getOption('zoomx_template_extension', null, 'tpl');
+        if ($ext !== pathinfo($name, PATHINFO_EXTENSION)) {
+            $name .= ".$ext";
+        }
+
+        return $name;
     }
 }

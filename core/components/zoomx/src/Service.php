@@ -50,7 +50,6 @@ class Service
             $exceptionHandler = $this->getExceptionHandler();
             set_exception_handler([$exceptionHandler, 'handle']);
         }
-
         // Register the session_write_close function
         session_register_shutdown();
 
@@ -62,7 +61,6 @@ class Service
         if (!class_exists('modResponse')) {
             require_once  MODX_CORE_PATH . 'model/modx/modresponse.class.php';
         }
-
     }
 
     /**
@@ -415,12 +413,16 @@ class Service
         return $this;
     }
 
+    public function getConfigPath()
+    {
+        return $this->config('zoomx_config_path') ?: $this->modx->getOption('core_path') . MODX_CONFIG_KEY . '/';
+    }
     /**
      * Return Composer autoloader.
      */
     public function getLoader()
     {
-        if (!$loader = include __DIR__ . '/../vendor/autoload.php') {
+        if (!($loader = include(__DIR__ . '/../vendor/autoload.php'))) {
             $this->abort(500, 'Composer is not set.');
         }
 
@@ -513,12 +515,13 @@ class Service
      * Replacement for modX::getChunk() method.
      * @param string $name
      * @param array $properties
+     * @param array|int $cacheOptions
      * @return string
      * @throws \SmartyException|\ReflectionException
      */
-    public function getChunk(string $name, array $properties = [])
+    public function getChunk(string $name, array $properties = [], $cacheOptions = [])
     {
-        return $this->getElementService()->getChunk($name, $properties);
+        return $this->getElementService()->getChunk($name, $properties, $cacheOptions);
     }
 
     /**
@@ -555,7 +558,7 @@ class Service
     private function loadExceptions()
     {
         $this->exceptions = require dirname(__DIR__) . '/config/exceptions.php';
-        $customFile = MODX_CORE_PATH . MODX_CONFIG_KEY . '/exceptions.php';
+        $customFile =  $this->getConfigPath() . 'exceptions.php';
         if (file_exists($customFile)) {
             $customExceptions = require $customFile;
         }
@@ -593,8 +596,4 @@ class Service
         }
         include $corePath . 'pdotools/pdotoolsadapter.php';
     }
-
-    private function __clone() {}
-
-    private function __wakeup() {}
 }

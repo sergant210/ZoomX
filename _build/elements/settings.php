@@ -76,6 +76,11 @@ return [
         'value' => true,
         'area' => 'zoomx_main',
     ],
+    'zoomx_config_path' => [
+        'xtype' => 'textfield',
+        'value' => '{core_path}config/',
+        'area' => 'zoomx_main',
+    ],
     /* Routing */
     'zoomx_routing_mode' => [
         'xtype' => 'numberfield',

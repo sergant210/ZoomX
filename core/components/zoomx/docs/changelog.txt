@@ -1,5 +1,14 @@
 Changelog for ZoomX.
 
+3.4.2-pl
+==============
+- Fixed a bug with multiple calls of the same snippet with a set of parameters.
+- Fixed a bug with empty plugin list (#6).
+- The $events property of a file plugin can be an empty array (#7).
+- Added system setting "zoomx_config_path" for ZoomX configs (#8).
+- Smarty caching is now available for resources with DB Smarty template (#12).
+- Removed private magic methods of the Service class for PHP8 compatibility (#13).
+
 3.4.1-pl
 ==============
 - Fixed the "runSnippet" and the "runFileSnippet" methods of the main service class.

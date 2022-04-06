@@ -8,7 +8,10 @@
  * Description: Get a chunk.
  * -------------------------------------------------------------
  */
-function smarty_modifier_chunk($name, $properties = [])
+function smarty_modifier_chunk($name, $properties = [], $cache_lifetime = null)
 {
-    return zoomx('elementService')->getChunk($name, $properties);
+    if (is_numeric($properties)) {
+        [$properties, $cache_lifetime] = [[], $properties];
+    }
+    return zoomx('elementService')->getChunk($name, $properties, $cache_lifetime);
 }

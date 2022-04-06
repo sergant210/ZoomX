@@ -19,10 +19,11 @@ interface ParserInterface
      * @param string $string Content for parsing or a template file name.
      * @param array $properties
      * @param bool $isFile
+     * @param array $options
      * @return false|string
-     * @throws SmartyException
+     * @throws \SmartyException
      */
-    public function parse($string, array $properties = [], $isFile = false);
+    public function parse($string, array $properties = [], $isFile = false, array $options = []);
 
     /**
      * Clear cache.

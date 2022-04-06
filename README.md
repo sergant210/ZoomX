@@ -663,6 +663,7 @@ $router->get('file.pdf',  function () {
 * zoomx_autoload_resource - disables searching and auto-loading the resource. This allows to use fully virtual pages.
 * zoomx_caching - to cache template files. By default, `false`. In development mode it's better to disable it.
 * zoomx_cache_event_map - to cache the event map of file plugins for optimization purposes. In developer mode it is better to disable.
+* zoomx_config_path - the path to the configuration files of routes, exceptions and file elements. By default, "{core_path}config/".
 * zoomx_enable_pdotools_adapter - replaces the Fenom template engine with the ZoomX one for parsing chunks in the pdoTools snippets.
 * zoomx_enable_exception_handler - enable its own exception handler for strict routing mode. 
 * zoomx_http_method_override - allows to specify the HTTP methods "PATCH", "PUT" and "DELETE" (not supported in HTML forms) by setting a form input element named as "_method" (`<input type="hidden" name="_method" value="PUT">`).

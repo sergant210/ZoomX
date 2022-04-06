@@ -28,13 +28,16 @@ class Response extends modResponse
             $zervice = zoomx();
             $parser = $zervice->getParser();
             if ($zervice->getRequest()->hasRoute()) {
+                // File template
                 $this->modx->resource->_output = $parser->process($this->modx->resource);
             } elseif ($zervice->config('zoomx_use_zoomx_parser_as_default', false)) {
-                $this->getTemplateContent();
-                $this->modx->resource->_output = !empty($this->modx->resource->_content)
-                    ? $parser->parse($this->modx->resource->_content)
-                    : $parser->parse($this->modx->resource->getContent());
-                $this->modx->resource->setProcessed(true);
+                // DB template
+//                $this->getTemplateContent();
+//                $this->modx->resource->_output = !empty($this->modx->resource->_content)
+//                    ? $parser->parse($this->modx->resource->_content)
+//                    : $parser->parse($this->modx->resource->getContent());
+//                $this->modx->resource->setProcessed(true);
+                $this->modx->resource->_output = $parser->processResource($this->modx->resource);
             } else {
                 $this->modx->resource->prepare();
             }
