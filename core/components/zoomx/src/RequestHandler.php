@@ -145,7 +145,14 @@ abstract class RequestHandler
                     return null;
                 }
                 if (!$resource->checkPolicy('view')) {
-                    abortx(403);
+                    $pageId = $this->modx->getOption('unauthorized_page');
+                    $resource = $this->modx->getObject('modResource', $pageId);
+
+                    if (!$resource instanceof modResource){
+                        abortx(403);
+                    }
+
+                    redirectx($resource->get('alias'));
                 }
                 if ($tvs = $resource->getMany('TemplateVars', 'all')) {
                     /** @var \modTemplateVar $tv */
